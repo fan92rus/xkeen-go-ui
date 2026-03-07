@@ -58,6 +58,7 @@ type ServiceHandler struct {
 	mu              sync.RWMutex
 	allowedCommands map[string]string
 	executor        CommandExecutor
+	statusTrigger   chan struct{}
 }
 
 // NewServiceHandler creates a new ServiceHandler.
@@ -69,7 +70,8 @@ func NewServiceHandler() *ServiceHandler {
 			"restart": "xkeen -restart",
 			"status":  "xkeen -status",
 		},
-		executor: &realExecutor{},
+		executor:      &realExecutor{},
+		statusTrigger: make(chan struct{}, 1),
 	}
 }
 
@@ -82,7 +84,17 @@ func NewServiceHandlerWithExecutor(executor CommandExecutor) *ServiceHandler {
 			"restart": "xkeen -restart",
 			"status":  "xkeen -status",
 		},
-		executor: executor,
+		executor:      executor,
+		statusTrigger: make(chan struct{}, 1),
+	}
+}
+
+// TriggerStatusCheck signals all SSE clients to receive an immediate status update.
+func (h *ServiceHandler) TriggerStatusCheck() {
+	select {
+	case h.statusTrigger <- struct{}{}:
+	default:
+		// Channel full, status check already pending
 	}
 }
 
@@ -166,6 +178,73 @@ func (h *ServiceHandler) GetStatus(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// StatusStream handles SSE connections for real-time status updates.
+// GET /api/xkeen/status/stream
+func (h *ServiceHandler) StatusStream(w http.ResponseWriter, r *http.Request) {
+	// Set SSE headers
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
+		return
+	}
+
+	// Send initial status immediately
+	h.sendStatusEvent(w, flusher)
+
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			if err := h.sendStatusEvent(w, flusher); err != nil {
+				return
+			}
+		case <-r.Context().Done():
+			return
+		case <-h.statusTrigger:
+			// Instant check triggered by start/stop/restart
+			if err := h.sendStatusEvent(w, flusher); err != nil {
+				return
+			}
+		}
+	}
+}
+
+// sendStatusEvent sends a single status event to the SSE client
+func (h *ServiceHandler) sendStatusEvent(w http.ResponseWriter, flusher http.Flusher) error {
+	ctx, cancel := context.WithTimeout(context.Background(), StatusTimeout)
+	defer cancel()
+
+	output, err := h.executeCommandWithTimeout(ctx, "status")
+
+	notRunning := strings.Contains(output, "is not running") ||
+		strings.Contains(output, "не запущен")
+
+	isRunning := err == nil && !notRunning &&
+		(strings.Contains(output, "is running") ||
+			strings.Contains(output, "running (PID:") ||
+			strings.Contains(output, "active (running)") ||
+			strings.Contains(output, "запущен"))
+
+	status := ServiceStatus{
+		LastCheck: time.Now(),
+		Running:   isRunning,
+	}
+	if isRunning {
+		status.Uptime = "active"
+	}
+
+	data, _ := json.Marshal(status)
+	fmt.Fprintf(w, "event: status\ndata: %s\n\n", data)
+	flusher.Flush()
+	return nil
+}
+
 // Start starts the xkeen service.
 // POST /api/xkeen/start
 // Runs asynchronously to avoid blocking the request.
@@ -237,6 +316,7 @@ func (h *ServiceHandler) Restart(w http.ResponseWriter, r *http.Request) {
 // RegisterServiceRoutes registers service-related routes.
 func RegisterServiceRoutes(r *mux.Router, handler *ServiceHandler) {
 	r.HandleFunc("/xkeen/status", handler.GetStatus).Methods("GET")
+	r.HandleFunc("/xkeen/status/stream", handler.StatusStream).Methods("GET")
 	r.HandleFunc("/xkeen/start", handler.Start).Methods("POST")
 	r.HandleFunc("/xkeen/stop", handler.Stop).Methods("POST")
 	r.HandleFunc("/xkeen/restart", handler.Restart).Methods("POST")
