@@ -5,6 +5,14 @@ import * as xkeenService from './services/xkeen.js';
 import * as logsService from './services/logs.js';
 import * as updateService from './services/update.js';
 
+/**
+ * Get CSRF token from cookie
+ * @returns {string} CSRF token
+ */
+function getCsrfToken() {
+    return document.cookie.match(/csrf_token=([^;]+)/)?.[1] || '';
+}
+
 document.addEventListener('alpine:init', () => {
     Alpine.store('app', {
         // UI state
@@ -47,6 +55,16 @@ document.addEventListener('alpine:init', () => {
         updating: false,
         updateProgress: 0,
         updateStatus: '',
+
+        // Password change state
+        passwordChange: {
+            currentPassword: '',
+            newPassword: '',
+            confirmPassword: '',
+            loading: false,
+            error: '',
+            success: false
+        },
 
         // Modal state
         modal: {
@@ -429,6 +447,75 @@ document.addEventListener('alpine:init', () => {
                 this.showToast('Update failed: ' + err.message, 'error');
                 this.updating = false;
             }
+        },
+
+        // Password change actions
+        async changePassword() {
+            // Client-side validation
+            if (!this.passwordChange.currentPassword || !this.passwordChange.newPassword || !this.passwordChange.confirmPassword) {
+                this.showToast('All password fields are required', 'error');
+                return false;
+            }
+
+            if (this.passwordChange.newPassword.length < 8) {
+                this.showToast('New password must be at least 8 characters', 'error');
+                return false;
+            }
+
+            if (this.passwordChange.newPassword !== this.passwordChange.confirmPassword) {
+                this.showToast('New passwords do not match', 'error');
+                return false;
+            }
+
+            if (this.passwordChange.currentPassword === this.passwordChange.newPassword) {
+                this.showToast('New password must be different from current password', 'error');
+                return false;
+            }
+
+            this.passwordChange.loading = true;
+            this.passwordChange.error = '';
+            this.passwordChange.success = false;
+
+            try {
+                const response = await fetch('/api/auth/change-password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': getCsrfToken()
+                    },
+                    body: JSON.stringify({
+                        current_password: this.passwordChange.currentPassword,
+                        new_password: this.passwordChange.newPassword
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok || !data.ok) {
+                    this.passwordChange.error = data.error || 'Failed to change password';
+                    this.showToast(data.error || 'Failed to change password', 'error');
+                    return false;
+                }
+
+                this.passwordChange.success = true;
+                this.showToast('Password changed successfully', 'success');
+                this.clearPasswordForm();
+                return true;
+            } catch (err) {
+                this.passwordChange.error = err.message || 'Failed to change password';
+                this.showToast('Failed to change password', 'error');
+                return false;
+            } finally {
+                this.passwordChange.loading = false;
+            }
+        },
+
+        clearPasswordForm() {
+            this.passwordChange.currentPassword = '';
+            this.passwordChange.newPassword = '';
+            this.passwordChange.confirmPassword = '';
+            this.passwordChange.error = '';
+            this.passwordChange.success = false;
         },
 
         // Init

@@ -232,6 +232,65 @@
                             <p class="progress-status" x-text="$store.app.updateStatus"></p>
                         </div>
                     </div>
+
+                    <div class="settings-section">
+                        <h3>Security</h3>
+
+                        <div class="password-change-form">
+                            <div class="setting-row">
+                                <label for="currentPassword">Current Password:</label>
+                                <input type="password"
+                                       id="currentPassword"
+                                       x-model="$store.app.passwordChange.currentPassword"
+                                       placeholder="Enter current password"
+                                       autocomplete="current-password">
+                            </div>
+
+                            <div class="setting-row">
+                                <label for="newPassword">New Password:</label>
+                                <input type="password"
+                                       id="newPassword"
+                                       x-model="$store.app.passwordChange.newPassword"
+                                       placeholder="Minimum 8 characters"
+                                       autocomplete="new-password">
+                            </div>
+
+                            <div class="setting-row">
+                                <label for="confirmPassword">Confirm Password:</label>
+                                <input type="password"
+                                       id="confirmPassword"
+                                       x-model="$store.app.passwordChange.confirmPassword"
+                                       placeholder="Re-enter new password"
+                                       autocomplete="new-password">
+                            </div>
+
+                            <div class="setting-info">
+                                <p><strong>Password requirements:</strong></p>
+                                <ul>
+                                    <li>Minimum 8 characters</li>
+                                    <li>Must be different from current password</li>
+                                </ul>
+                            </div>
+
+                            <div x-show="$store.app.passwordChange.error" class="setting-error">
+                                <p x-text="$store.app.passwordChange.error"></p>
+                            </div>
+
+                            <div x-show="$store.app.passwordChange.success" class="setting-success">
+                                <p>Password changed successfully!</p>
+                            </div>
+
+                            <div class="update-actions">
+                                <button @click="$store.app.changePassword()"
+                                        :disabled="$store.app.passwordChange.loading"
+                                        class="btn btn-primary"
+                                        x-text="$store.app.passwordChange.loading ? 'Changing...' : 'Change Password'"></button>
+                                <button @click="$store.app.clearPasswordForm()"
+                                        :disabled="$store.app.passwordChange.loading"
+                                        class="btn">Clear</button>
+                            </div>
+                        </div>
+                    </div>
                     </div>
                 </div>
             </section>

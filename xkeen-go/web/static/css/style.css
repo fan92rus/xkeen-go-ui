@@ -546,6 +546,54 @@ body {
     font-weight: 500;
 }
 
+.setting-error {
+    background: rgba(243, 139, 168, 0.1);
+    border: 1px solid var(--danger);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-top: 16px;
+}
+
+.setting-error p {
+    color: var(--danger);
+    font-weight: 500;
+}
+
+.setting-success {
+    background: rgba(166, 227, 161, 0.1);
+    border: 1px solid var(--success);
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-top: 16px;
+}
+
+.setting-success p {
+    color: var(--success);
+    font-weight: 500;
+}
+
+.password-change-form .setting-row input[type="password"] {
+    padding: 10px 16px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    flex: 1;
+    max-width: 250px;
+}
+
+.password-change-form .setting-row input[type="password"]:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px rgba(137, 180, 250, 0.2);
+}
+
+.password-change-form .setting-row input[type="password"]::placeholder {
+    color: var(--text-secondary);
+    opacity: 0.6;
+}
+
 .settings-actions {
     display: flex;
     gap: 12px;

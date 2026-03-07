@@ -244,7 +244,7 @@ func runServer() {
 	log.Printf("Allowed roots: %v", cfg.AllowedRoots)
 
 	// Create server with embedded web files
-	srv, err := server.NewServer(cfg, GetWebFS())
+	srv, err := server.NewServer(cfg, configPath, GetWebFS())
 	if err != nil {
 		log.Fatalf("Failed to create server: %v", err)
 	}

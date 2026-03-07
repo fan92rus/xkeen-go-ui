@@ -27,6 +27,7 @@ import (
 // Server represents the HTTP server.
 type Server struct {
 	cfg        *config.Config
+	configPath string
 	http       *http.Server
 	router     *mux.Router
 	middleware *Middleware
@@ -72,7 +73,7 @@ type securityService struct {
 
 // NewServer creates a new HTTP server.
 // Returns an error if the server cannot be initialized with a valid backup directory.
-func NewServer(cfg *config.Config, webFS fs.FS) (*Server, error) {
+func NewServer(cfg *config.Config, configPath string, webFS fs.FS) (*Server, error) {
 	// Initialize services
 	sessionTimeout := time.Duration(cfg.Auth.SessionTimeout) * time.Hour
 	sessions := newSessionStore(sessionTimeout)
@@ -86,6 +87,7 @@ func NewServer(cfg *config.Config, webFS fs.FS) (*Server, error) {
 
 	s := &Server{
 		cfg:        cfg,
+		configPath: configPath,
 		router:     router,
 		middleware: middleware,
 		sessions:   sessions,
@@ -235,6 +237,9 @@ func (s *Server) setupRoutes() {
 
 	// CSRF token endpoint
 	apiRouter.HandleFunc("/auth/csrf", s.getCSRFToken).Methods("GET")
+
+	// Password change endpoint
+	apiRouter.HandleFunc("/auth/change-password", s.changePassword).Methods("POST")
 
 	// Main page (protected)
 	s.router.Handle("/", s.middleware.AuthMiddleware(http.HandlerFunc(s.indexPage))).Methods("GET")
@@ -637,6 +642,120 @@ func (s *Server) authStatus(w http.ResponseWriter, r *http.Request) {
 		"ok":        true,
 		"logged_in": loggedIn,
 		"user":      username,
+	})
+}
+
+// changePassword handles password change requests.
+// POST /api/auth/change-password
+func (s *Server) changePassword(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		CurrentPassword string `json:"current_password"`
+		NewPassword     string `json:"new_password"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"ok":    false,
+			"error": "Invalid request body",
+		})
+		return
+	}
+
+	// Validate input
+	if req.CurrentPassword == "" || req.NewPassword == "" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"ok":    false,
+			"error": "Current password and new password are required",
+		})
+		return
+	}
+
+	// Validate new password length
+	if len(req.NewPassword) < 8 {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"ok":    false,
+			"error": "New password must be at least 8 characters long",
+		})
+		return
+	}
+
+	// Check if new password is same as current
+	if req.CurrentPassword == req.NewPassword {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"ok":    false,
+			"error": "New password must be different from current password",
+		})
+		return
+	}
+
+	// Verify current password
+	storedHash := s.cfg.Auth.PasswordHash
+	if storedHash == "" {
+		// If no hash set (shouldn't happen in production), use default
+		var err error
+		storedHash, err = s.security.HashPassword("admin")
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"ok":    false,
+				"error": "Internal server error",
+			})
+			return
+		}
+	}
+
+	if !s.security.CheckPassword(req.CurrentPassword, storedHash) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"ok":    false,
+			"error": "Current password is incorrect",
+		})
+		return
+	}
+
+	// Hash new password
+	newHash, err := s.security.HashPassword(req.NewPassword)
+	if err != nil {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"ok":    false,
+			"error": "Failed to hash new password",
+		})
+		return
+	}
+
+	// Update config
+	s.cfg.Auth.PasswordHash = newHash
+
+	// Save config to file
+	if err := s.cfg.SaveConfig(s.configPath); err != nil {
+		log.Printf("Failed to save config: %v", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"ok":    false,
+			"error": "Failed to save configuration",
+		})
+		return
+	}
+
+	log.Printf("Password changed successfully for user: %s", GetUsername(r.Context()))
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"ok":      true,
+		"message": "Password changed successfully",
 	})
 }
 
