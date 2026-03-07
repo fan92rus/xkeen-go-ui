@@ -904,3 +904,66 @@ body {
 .diff-removed {
     color: var(--danger);
 }
+
+/* Update section styles */
+.update-status {
+    margin-bottom: 1rem;
+}
+
+.version-info {
+    font-family: monospace;
+    background: var(--bg-secondary);
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+.update-available {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background: rgba(52, 152, 219, 0.1);
+    border-left: 3px solid var(--accent);
+    border-radius: 4px;
+}
+
+.update-available p {
+    margin: 0 0 0.5rem 0;
+}
+
+.release-link {
+    font-size: 0.875rem;
+    color: var(--accent);
+}
+
+.up-to-date {
+    color: var(--success);
+    margin-top: 0.5rem;
+}
+
+.update-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.update-progress {
+    margin-top: 1rem;
+}
+
+.progress-bar {
+    height: 8px;
+    background: var(--bg-secondary);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.3s ease;
+}
+
+.progress-status {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
