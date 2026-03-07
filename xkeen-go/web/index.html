@@ -133,9 +133,18 @@
                      class="tab-content"
                      :class="{ 'active': $store.app.activeTab === 'settings' }">
                 <div class="settings-container">
-                    <h2>Xray Settings</h2>
+                    <div class="settings-header">
+                        <h2>Xray Settings</h2>
+                        <div class="settings-actions">
+                            <button @click="$store.app.restartService()"
+                                    class="btn btn-primary">Apply & Restart Xray</button>
+                            <button @click="$store.app.loadXraySettings()"
+                                    class="btn">Refresh Settings</button>
+                        </div>
+                    </div>
 
-                    <div class="settings-section">
+                    <div class="settings-grid">
+                        <div class="settings-section">
                         <h3>Logging</h3>
 
                         <div class="setting-row">
@@ -223,12 +232,6 @@
                             <p class="progress-status" x-text="$store.app.updateStatus"></p>
                         </div>
                     </div>
-
-                    <div class="settings-actions">
-                        <button @click="$store.app.restartService()"
-                                class="btn btn-primary">Apply & Restart Xray</button>
-                        <button @click="$store.app.loadXraySettings()"
-                                class="btn">Refresh Settings</button>
                     </div>
                 </div>
             </section>

@@ -410,25 +410,46 @@ body {
 
 /* Settings */
 .settings-container {
-    padding: 30px;
-    max-width: 800px;
-    margin: 0 auto;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
     height: 100%;
+    overflow: hidden;
 }
 
-.settings-container h2 {
+.settings-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 30px;
+    background: var(--bg-primary);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+}
+
+.settings-header h2 {
     font-size: 1.5rem;
-    margin-bottom: 24px;
     color: var(--accent);
+    margin: 0;
+}
+
+.settings-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding: 30px;
+    overflow-y: auto;
+    flex: 1;
+    align-content: flex-start;
 }
 
 .settings-section {
     background: var(--bg-secondary);
     border-radius: 8px;
     padding: 20px;
-    margin-bottom: 20px;
     border: 1px solid var(--border);
+    flex: 1 1 300px;
+    min-width: 280px;
+    max-width: 450px;
 }
 
 .settings-section h3 {
@@ -528,12 +549,11 @@ body {
 .settings-actions {
     display: flex;
     gap: 12px;
-    margin-top: 24px;
 }
 
 .settings-actions .btn {
-    padding: 12px 24px;
-    font-size: 0.95rem;
+    padding: 10px 20px;
+    font-size: 0.9rem;
 }
 
 /* Commands tab */
