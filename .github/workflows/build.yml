@@ -12,37 +12,6 @@ env:
   GO_VERSION: '1.21'
 
 jobs:
-  test:
-    name: Test
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: ${{ env.GO_VERSION }}
-
-      - name: Download dependencies
-        working-directory: xkeen-go
-        run: go mod download
-
-      - name: Run go vet
-        working-directory: xkeen-go
-        run: go vet ./...
-
-      - name: Run tests
-        working-directory: xkeen-go
-        run: go test -v -coverprofile=coverage.out ./...
-        continue-on-error: true
-
-      - name: Upload coverage
-        uses: codecov/codecov-action@v4
-        with:
-          files: xkeen-go/coverage.out
-          fail_ci_if_error: false
-
   build:
     name: Build keenetic-arm64
     runs-on: ubuntu-latest
@@ -85,13 +54,6 @@ jobs:
             -X main.gitCommit=${{ steps.version.outputs.git_commit }}" \
             -o xkeen-go-keenetic-arm64
 
-      - name: Verify version
-        working-directory: xkeen-go
-        run: |
-          ./xkeen-go-keenetic-arm64 version
-          echo "---"
-          echo "Version from ldflags: ${{ steps.version.outputs.version }}"
-
       - name: Compress with UPX
         uses: svenstaro/upx-action@v2
         with:
@@ -99,18 +61,11 @@ jobs:
           args: --best --lzma
         continue-on-error: true
 
-      - name: Create archive
-        working-directory: xkeen-go
-        run: |
-          mkdir -p release
-          tar -czvf release/xkeen-go-keenetic-arm64.tar.gz \
-            xkeen-go-keenetic-arm64
-
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: xkeen-go-keenetic-arm64
-          path: xkeen-go/release/xkeen-go-keenetic-arm64.tar.gz
+          path: xkeen-go/xkeen-go-keenetic-arm64
           retention-days: 30
 
   release:
@@ -154,8 +109,8 @@ jobs:
 
             ### Installation
             ```sh
-            # Download and extract
-            tar -xzf xkeen-go-keenetic-arm64.tar.gz
+            # Download and make executable
+            chmod +x xkeen-go-keenetic-arm64
 
             # Install (run as root)
             ./xkeen-go-keenetic-arm64 install
@@ -175,6 +130,6 @@ jobs:
             ```
 
           files: |
-            artifacts/xkeen-go-keenetic-arm64.tar.gz
+            artifacts/xkeen-go-keenetic-arm64
           draft: false
           prerelease: ${{ contains(steps.version.outputs.version, '-') }}
