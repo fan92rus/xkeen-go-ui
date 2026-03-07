@@ -572,6 +572,16 @@ body {
     font-weight: 500;
 }
 
+.password-change-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.password-change-form .setting-row {
+    margin-bottom: 0;
+}
+
 .password-change-form .setting-row input[type="password"] {
     padding: 10px 16px;
     background: var(--bg-tertiary);
@@ -592,6 +602,19 @@ body {
 .password-change-form .setting-row input[type="password"]::placeholder {
     color: var(--text-secondary);
     opacity: 0.6;
+}
+
+.password-change-form .setting-info {
+    margin-top: 4px;
+}
+
+.password-change-form .setting-error,
+.password-change-form .setting-success {
+    margin-top: 4px;
+}
+
+.password-change-form .update-actions {
+    margin-top: 8px;
 }
 
 .settings-actions {
