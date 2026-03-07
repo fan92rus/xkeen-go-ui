@@ -54,6 +54,10 @@ jobs:
             -X main.gitCommit=${{ steps.version.outputs.git_commit }}" \
             -o xkeen-go-keenetic-arm64
 
+      - name: Copy uncompressed binary
+        working-directory: xkeen-go
+        run: cp xkeen-go-keenetic-arm64 xkeen-go-keenetic-arm64-full
+
       - name: Compress with UPX
         uses: svenstaro/upx-action@v2
         with:
@@ -61,18 +65,25 @@ jobs:
           args: --best --lzma
         continue-on-error: true
 
-      - name: Upload artifact
+      - name: Upload compressed artifact
         uses: actions/upload-artifact@v4
         with:
           name: xkeen-go-keenetic-arm64
           path: xkeen-go/xkeen-go-keenetic-arm64
           retention-days: 30
 
+      - name: Upload full artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: xkeen-go-keenetic-arm64-full
+          path: xkeen-go/xkeen-go-keenetic-arm64-full
+          retention-days: 30
+
   release:
     name: Create Release
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     permissions:
       contents: write
 
@@ -80,16 +91,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download artifact
+      - name: Download compressed artifact
         uses: actions/download-artifact@v4
         with:
           name: xkeen-go-keenetic-arm64
           path: artifacts
 
+      - name: Download full artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: xkeen-go-keenetic-arm64-full
+          path: artifacts
+
       - name: Get version
         id: version
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/v}
+          else
+            VERSION=$(git describe --tags --always --dirty 2>/dev/null || echo "dev")
+          fi
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
       - name: Create Release
@@ -101,6 +122,10 @@ jobs:
             ## XKEEN-GO ${{ steps.version.outputs.version }}
 
             Lightweight Web UI for XKeen configuration on Keenetic routers.
+
+            ### Downloads
+            - `xkeen-go-keenetic-arm64` - compressed with UPX (smaller)
+            - `xkeen-go-keenetic-arm64-full` - uncompressed (more compatible)
 
             ### Supported Devices
             - KN-1010, KN-1011
@@ -131,5 +156,6 @@ jobs:
 
           files: |
             artifacts/xkeen-go-keenetic-arm64
+            artifacts/xkeen-go-keenetic-arm64-full
           draft: false
           prerelease: ${{ contains(steps.version.outputs.version, '-') }}
