@@ -3,6 +3,7 @@
 import * as configService from './services/config.js';
 import * as xkeenService from './services/xkeen.js';
 import * as logsService from './services/logs.js';
+import * as updateService from './services/update.js';
 
 document.addEventListener('alpine:init', () => {
     Alpine.store('app', {
@@ -32,6 +33,20 @@ document.addEventListener('alpine:init', () => {
             accessLog: '',
             errorLog: ''
         },
+
+        // Update state
+        currentVersion: 'unknown',
+        updateInfo: {
+            update_available: false,
+            current_version: '',
+            latest_version: '',
+            release_url: '',
+            release_notes: ''
+        },
+        updateChecking: false,
+        updating: false,
+        updateProgress: 0,
+        updateStatus: '',
 
         // Modal state
         modal: {
@@ -367,10 +382,60 @@ document.addEventListener('alpine:init', () => {
             return result.join('\n');
         },
 
+        // Update actions
+        async checkUpdate() {
+            this.updateChecking = true;
+            try {
+                const data = await updateService.checkUpdate();
+                this.currentVersion = data.current_version;
+                this.updateInfo = {
+                    update_available: data.update_available,
+                    current_version: data.current_version,
+                    latest_version: data.latest_version,
+                    release_url: data.release_url || '',
+                    release_notes: data.release_notes || ''
+                };
+                if (data.error) {
+                    this.showToast('Update check: ' + data.error, 'error');
+                }
+            } catch (err) {
+                this.showToast('Failed to check for updates', 'error');
+            } finally {
+                this.updateChecking = false;
+            }
+        },
+
+        async startUpdate() {
+            this.updating = true;
+            this.updateProgress = 0;
+            this.updateStatus = 'Starting update...';
+
+            try {
+                await updateService.startUpdate({
+                    onProgress: (data) => {
+                        this.updateProgress = data.percent;
+                        this.updateStatus = data.status;
+                    },
+                    onComplete: (data) => {
+                        this.showToast(data.message || 'Update complete!', 'success');
+                        // Page will reload when service restarts
+                    },
+                    onError: (data) => {
+                        this.showToast('Update failed: ' + data.error, 'error');
+                        this.updating = false;
+                    }
+                });
+            } catch (err) {
+                this.showToast('Update failed: ' + err.message, 'error');
+                this.updating = false;
+            }
+        },
+
         // Init
         init() {
             this.loadFiles();
             this.loadXraySettings();
+            this.checkUpdate();
         }
     });
 });
