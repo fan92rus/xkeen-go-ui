@@ -121,7 +121,7 @@ jobs:
           GIT_COMMIT=$(git rev-parse --short HEAD)
 
           go build -ldflags "-s -w \
-            -X main.version=${{ steps.bump.outputs.version }} \
+            -X main.appVersion=${{ steps.bump.outputs.version }} \
             -X main.buildDate=${BUILD_DATE} \
             -X main.gitCommit=${GIT_COMMIT}" \
             -o xkeen-go-keenetic-arm64

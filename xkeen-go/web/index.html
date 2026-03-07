@@ -180,12 +180,18 @@
                                 <span class="version-info" x-text="$store.app.currentVersion"></span>
                             </div>
 
+                            <div class="setting-row" x-show="$store.app.updateInfo.latest_version">
+                                <label>Latest version:</label>
+                                <span class="version-info" x-text="$store.app.updateInfo.latest_version"></span>
+                                <a x-show="$store.app.updateInfo.release_url"
+                                   :href="$store.app.updateInfo.release_url"
+                                   target="_blank"
+                                   class="release-link-small">release notes</a>
+                            </div>
+
                             <template x-if="$store.app.updateInfo.update_available">
                                 <div class="update-available">
-                                    <p>New version available: <strong x-text="$store.app.updateInfo.latest_version"></strong></p>
-                                    <a :href="$store.app.updateInfo.release_url"
-                                       target="_blank"
-                                       class="release-link">View release notes</a>
+                                    <p>New version available!</p>
                                 </div>
                             </template>
 

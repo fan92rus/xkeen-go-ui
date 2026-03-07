@@ -22,7 +22,7 @@ import (
 
 // Build information (set via ldflags)
 var (
-	appVersion   = "1.0.0"
+	appVersion   = "0.1.0"
 	buildDate = "unknown"
 	gitCommit = "unknown"
 )

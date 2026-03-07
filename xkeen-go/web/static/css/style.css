@@ -934,6 +934,16 @@ body {
     color: var(--accent);
 }
 
+.release-link-small {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-left: 8px;
+}
+
+.release-link-small:hover {
+    color: var(--accent);
+}
+
 .up-to-date {
     color: var(--success);
     margin-top: 0.5rem;
