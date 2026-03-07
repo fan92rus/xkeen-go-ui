@@ -22,6 +22,14 @@ export async function checkUpdate() {
 }
 
 /**
+ * Get CSRF token from cookie
+ * @returns {string} CSRF token
+ */
+function getCSRFToken() {
+    return document.cookie.match(/csrf_token=([^;]+)/)?.[1] || '';
+}
+
+/**
  * Start update and listen to SSE events
  * @param {Object} callbacks - Event callbacks
  * @param {Function} callbacks.onProgress - Called with {percent, status}
@@ -35,7 +43,8 @@ export function startUpdate(callbacks) {
         fetch(`${API_BASE}/update/start`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': getCSRFToken()
             }
         }).then(response => {
             if (!response.ok) {
