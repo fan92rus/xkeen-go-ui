@@ -144,6 +144,13 @@ jobs:
 
           cat /tmp/changelog.md
 
+          # Save to output (multiline support via heredoc)
+          {
+            echo 'content<<EOF'
+            cat /tmp/changelog.md
+            echo 'EOF'
+          } >> $GITHUB_OUTPUT
+
       - name: Create tag
         run: |
           git config user.name "github-actions[bot]"
@@ -162,7 +169,7 @@ jobs:
 
             **Bump type:** ${{ steps.bump.outputs.bump_type }} (${{ steps.bump.outputs.prev_tag }} → ${{ steps.bump.outputs.tag }})
 
-            $(cat /tmp/changelog.md)
+            ${{ steps.changelog.outputs.content }}
 
             ---
 
