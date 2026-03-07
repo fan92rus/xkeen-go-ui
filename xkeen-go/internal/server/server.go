@@ -40,6 +40,7 @@ type Server struct {
 	logsHandler     *handlers.LogsHandler
 	settingsHandler *handlers.SettingsHandler
 	commandsHandler *handlers.CommandsHandler
+	updateHandler   *handlers.UpdateHandler
 
 	// Shutdown state
 	shutdown bool
@@ -111,6 +112,7 @@ func NewServer(cfg *config.Config, webFS fs.FS) (*Server, error) {
 		},
 	})
 	s.commandsHandler = handlers.NewCommandsHandler()
+	s.updateHandler = handlers.NewUpdateHandler()
 
 	// Setup routes
 	s.setupRoutes()
@@ -226,6 +228,7 @@ func (s *Server) setupRoutes() {
 	handlers.RegisterLogsRoutes(apiRouter, s.logsHandler)
 	handlers.RegisterSettingsRoutes(apiRouter, s.settingsHandler)
 	handlers.RegisterCommandsRoutes(apiRouter, s.commandsHandler)
+	handlers.RegisterUpdateRoutes(apiRouter, s.updateHandler)
 
 	// WebSocket routes (auth required, but no CSRF - WebSocket cannot send custom headers)
 	handlers.RegisterLogsWSRoute(s.router, s.logsHandler, s.middleware.AuthMiddleware)
