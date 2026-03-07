@@ -259,6 +259,10 @@ func (h *ServiceHandler) Start(w http.ResponseWriter, r *http.Request) {
 		} else {
 			log.Printf("Start completed: %s", output)
 		}
+
+		// Wait a moment for service to start, then trigger status check
+		time.Sleep(1 * time.Second)
+		h.TriggerStatusCheck()
 	}()
 
 	h.respondJSON(w, http.StatusOK, ServiceResponse{
@@ -281,6 +285,10 @@ func (h *ServiceHandler) Stop(w http.ResponseWriter, r *http.Request) {
 		} else {
 			log.Printf("Stop completed: %s", output)
 		}
+
+		// Wait a moment for service to stop, then trigger status check
+		time.Sleep(1 * time.Second)
+		h.TriggerStatusCheck()
 	}()
 
 	h.respondJSON(w, http.StatusOK, ServiceResponse{
@@ -304,6 +312,10 @@ func (h *ServiceHandler) Restart(w http.ResponseWriter, r *http.Request) {
 		} else {
 			log.Printf("Restart completed: %s", output)
 		}
+
+		// Wait a moment for service to restart, then trigger status check
+		time.Sleep(2 * time.Second)
+		h.TriggerStatusCheck()
 	}()
 
 	// Return immediately
