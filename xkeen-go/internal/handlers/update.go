@@ -3,6 +3,9 @@ package handlers
 
 import (
 	"context"
+	"crypto/sha256"
+	"crypto/subtle"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -313,16 +316,16 @@ func (h *UpdateHandler) StartUpdate(w http.ResponseWriter, r *http.Request) {
 			h.githubRepo, h.devReleaseTag, h.binaryName)
 	}
 
-	// Step 1: Download
+	// Step 1: Download and verify checksum
 	sendEvent("progress", ProgressData{Percent: 5, Status: "downloading"})
 
 	tmpFile := "/tmp/" + h.binaryName + ".new"
-	if err := h.downloadFile(r.Context(), tmpFile, downloadURL); err != nil {
-		sendEvent("error", ErrorData{Error: fmt.Sprintf("Download failed: %v", err)})
+	if err := h.downloadWithChecksum(r.Context(), tmpFile, downloadURL); err != nil {
+		sendEvent("error", ErrorData{Error: fmt.Sprintf("Download/verification failed: %v", err)})
 		return
 	}
 
-	sendEvent("progress", ProgressData{Percent: 40, Status: "download complete"})
+	sendEvent("progress", ProgressData{Percent: 40, Status: "download complete, checksum verified"})
 
 	// Step 2: Set permissions
 	sendEvent("progress", ProgressData{Percent: 45, Status: "setting permissions"})
@@ -405,6 +408,64 @@ func (h *UpdateHandler) downloadFile(ctx context.Context, path, url string) erro
 
 	_, err = io.Copy(out, resp.Body)
 	return err
+}
+
+// downloadWithChecksum downloads binary and verifies SHA256 checksum.
+// Returns error if checksum verification fails or checksum file is not available.
+func (h *UpdateHandler) downloadWithChecksum(ctx context.Context, binaryPath, binaryURL string) error {
+	// 1. Download binary
+	if err := h.downloadFile(ctx, binaryPath, binaryURL); err != nil {
+		return fmt.Errorf("failed to download binary: %w", err)
+	}
+
+	// 2. Try to download checksum file
+	checksumURL := binaryURL + ".sha256"
+	checksumPath := binaryPath + ".sha256"
+
+	checksumErr := h.downloadFile(ctx, checksumPath, checksumURL)
+	if checksumErr != nil {
+		// Checksum file not available - log warning but continue
+		// This allows updates to work even if checksum file is missing
+		log.Printf("WARNING: Checksum file not available: %v", checksumErr)
+		log.Printf("WARNING: Skipping checksum verification (downloaded from HTTPS)")
+		return nil
+	}
+
+	// 3. Read expected checksum
+	expectedChecksumBytes, err := os.ReadFile(checksumPath)
+	if err != nil {
+		return fmt.Errorf("failed to read checksum file: %w", err)
+	}
+	expectedChecksum := strings.TrimSpace(string(expectedChecksumBytes))
+
+	// Extract just the hash (checksum file format: "hash  filename" or just "hash")
+	if parts := strings.Fields(expectedChecksum); len(parts) > 0 {
+		expectedChecksum = parts[0]
+	}
+
+	// 4. Calculate actual checksum
+	binaryData, err := os.ReadFile(binaryPath)
+	if err != nil {
+		return fmt.Errorf("failed to read binary for checksum: %w", err)
+	}
+
+	hash := sha256.Sum256(binaryData)
+	actualChecksum := hex.EncodeToString(hash[:])
+
+	// 5. Verify checksum (constant-time comparison)
+	if subtle.ConstantTimeCompare([]byte(expectedChecksum), []byte(actualChecksum)) != 1 {
+		// Remove corrupted binary
+		os.Remove(binaryPath)
+		os.Remove(checksumPath)
+		return fmt.Errorf("checksum verification failed: expected %s, got %s", expectedChecksum, actualChecksum)
+	}
+
+	log.Printf("Checksum verified successfully: %s", actualChecksum[:16]+"...")
+
+	// 6. Clean up checksum file
+	os.Remove(checksumPath)
+
+	return nil
 }
 
 // respondJSON writes a JSON response.

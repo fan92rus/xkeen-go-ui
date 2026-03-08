@@ -612,11 +612,19 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	// Set CSRF token cookie (for client-side access)
 	s.SetCSRFTokenCookie(w, csrfToken)
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	// Check if password change is required (default credentials)
+	response := map[string]interface{}{
 		"ok":         true,
 		"csrf_token": csrfToken,
-	})
+	}
+
+	if s.cfg.Auth.ForcePasswordChange {
+		response["require_password_change"] = true
+		response["message"] = "You must change the default password before continuing"
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
@@ -742,6 +750,7 @@ func (s *Server) changePassword(w http.ResponseWriter, r *http.Request) {
 
 	// Update config
 	s.cfg.Auth.PasswordHash = newHash
+	s.cfg.Auth.ForcePasswordChange = false // Clear force password change flag
 
 	// Save config to file
 	if err := s.cfg.SaveConfig(s.configPath); err != nil {

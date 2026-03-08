@@ -125,6 +125,21 @@ jobs:
             -X main.gitCommit=${GIT_COMMIT}" \
             -o xkeen-go-keenetic-arm64
 
+      - name: Generate SHA256 checksum
+        working-directory: xkeen-go
+        run: |
+          # Generate checksum for binary integrity verification
+          sha256sum xkeen-go-keenetic-arm64 > xkeen-go-keenetic-arm64.sha256
+
+          echo "Checksum generated:"
+          cat xkeen-go-keenetic-arm64.sha256
+
+          # Verify checksum format (should be: "hash  filename")
+          if [ $(wc -w < xkeen-go-keenetic-arm64.sha256) -ne 2 ]; then
+            echo "ERROR: Invalid checksum format"
+            exit 1
+          fi
+
       - name: Generate release notes
         id: notes
         run: |
@@ -169,6 +184,16 @@ jobs:
 
           # Start service
           /opt/etc/init.d/xkeen-go start
+          \`\`\`
+
+          ### Verify Download (Optional)
+          \`\`\`sh
+          # Download checksum file
+          wget https://github.com/${{ github.repository }}/releases/download/${{ steps.bump.outputs.tag }}/xkeen-go-keenetic-arm64.sha256
+
+          # Verify integrity
+          sha256sum -c xkeen-go-keenetic-arm64.sha256
+          # Should output: xkeen-go-keenetic-arm64: OK
           \`\`\`
 
           ### Default Credentials
@@ -216,4 +241,5 @@ jobs:
           body_path: /tmp/release-notes.md
           files: |
             xkeen-go/xkeen-go-keenetic-arm64
+            xkeen-go/xkeen-go-keenetic-arm64.sha256
           draft: false

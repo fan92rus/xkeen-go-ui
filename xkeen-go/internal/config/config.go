@@ -58,6 +58,10 @@ type AuthConfig struct {
 
 	// LockoutDuration in minutes (default: 5).
 	LockoutDuration int `json:"lockout_duration"`
+
+	// ForcePasswordChange requires user to change password on next login.
+	// Set to true when default credentials are used.
+	ForcePasswordChange bool `json:"force_password_change"`
 }
 
 // DefaultConfig returns a configuration with sensible defaults.

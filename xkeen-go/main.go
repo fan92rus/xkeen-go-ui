@@ -5,6 +5,7 @@ package main
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"log"
 	"os"
@@ -18,6 +19,7 @@ import (
 	"github.com/user/xkeen-go/internal/config"
 	"github.com/user/xkeen-go/internal/server"
 	"github.com/user/xkeen-go/internal/version"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // Build information (set via ldflags)
@@ -353,8 +355,31 @@ func install() error {
 		fmt.Println("Creating default configuration...")
 		// Generate session secret
 		secret := generateSecret()
+
+		// Generate bcrypt hash for default password "admin"
+		passwordHash, err := bcrypt.GenerateFromPassword([]byte("admin"), 12)
+		if err != nil {
+			return fmt.Errorf("failed to hash default password: %w", err)
+		}
+
+		// Create config with default credentials and force password change
 		configContent := strings.Replace(defaultConfigJSON, `"session_secret": ""`, fmt.Sprintf(`"session_secret": "%s"`, secret), 1)
-		if err := os.WriteFile(installConfig, []byte(configContent), 0600); err != nil {
+		configContent = strings.Replace(configContent, `"password_hash": ""`, fmt.Sprintf(`"password_hash": "%s"`, string(passwordHash)), 1)
+
+		// Add force_password_change flag for default credentials
+		var configMap map[string]interface{}
+		if err := json.Unmarshal([]byte(configContent), &configMap); err != nil {
+			return fmt.Errorf("failed to parse default config: %w", err)
+		}
+		if auth, ok := configMap["auth"].(map[string]interface{}); ok {
+			auth["force_password_change"] = true
+		}
+		configBytes, err := json.MarshalIndent(configMap, "", "    ")
+		if err != nil {
+			return fmt.Errorf("failed to marshal config: %w", err)
+		}
+
+		if err := os.WriteFile(installConfig, configBytes, 0600); err != nil {
 			return fmt.Errorf("failed to create config: %w", err)
 		}
 		fmt.Println()
@@ -362,7 +387,7 @@ func install() error {
 		fmt.Println("*  IMPORTANT: Default credentials     *")
 		fmt.Println("*  Username: admin                    *")
 		fmt.Println("*  Password: admin                    *")
-		fmt.Println("*  PLEASE CHANGE THE PASSWORD ASAP!   *")
+		fmt.Println("*  YOU MUST CHANGE PASSWORD ON LOGIN! *")
 		fmt.Println("***************************************")
 	} else {
 		fmt.Println("Configuration file already exists, keeping it")

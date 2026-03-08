@@ -6,47 +6,231 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>">
     <title>XKEEN-GO Login</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        .change-password-form {
+            display: none;
+        }
+        .change-password-form.active {
+            display: block;
+        }
+        .login-form.hidden {
+            display: none;
+        }
+        .warning-box {
+            background: #ff6b6b;
+            color: white;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 16px;
+            font-size: 14px;
+        }
+        .password-requirements {
+            font-size: 12px;
+            color: #888;
+            margin-top: 4px;
+        }
+        .password-strength {
+            height: 4px;
+            margin-top: 8px;
+            border-radius: 2px;
+            transition: background 0.3s;
+        }
+        .strength-weak { background: #ff6b6b; }
+        .strength-medium { background: #ffa500; }
+        .strength-strong { background: #51cf66; }
+    </style>
 </head>
 <body>
     <div class="login-container">
+        <!-- Login Form -->
         <form class="login-form" id="loginForm">
             <h1>XKEEN-GO</h1>
             <input type="password" name="password" placeholder="Password" required autofocus>
             <button type="submit">Login</button>
+        </form>
+
+        <!-- Change Password Form (shown after login with default credentials) -->
+        <form class="login-form change-password-form" id="changePasswordForm">
+            <h1>🔐 Change Password</h1>
+            <div class="warning-box" id="securityWarning">
+                ⚠️ Default credentials detected!<br>
+                You must change the password before continuing.
+            </div>
+
+            <input type="password" name="current_password" placeholder="Current Password (admin)" required>
+            <input type="password" name="new_password" placeholder="New Password" required id="newPassword">
+            <div class="password-strength" id="passwordStrength"></div>
+            <div class="password-requirements" id="passwordRequirements">
+                Minimum 8 characters, recommended: 12+ with mixed case, numbers, symbols
+            </div>
+
+            <input type="password" name="confirm_password" placeholder="Confirm New Password" required>
+            <button type="submit" id="changePasswordBtn">Change Password</button>
         </form>
     </div>
 
     <div id="toast" class="toast hidden"></div>
 
     <script>
+    let sessionToken = null;
+    let csrfToken = null;
+
+    // Login form handler
     document.getElementById('loginForm').addEventListener('submit', async (e) => {
         e.preventDefault();
         const form = e.target;
         const password = form.password.value;
 
         try {
-            const res = await fetch('/api/auth/login', {
+            const response = await fetch('/api/auth/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ password })
+                body: JSON.stringify({ username: 'admin', password })
             });
 
-            if (res.ok) {
-                window.location.href = '/';
+            const data = await response.json();
+
+            if (data.ok) {
+                // Store CSRF token
+                csrfToken = data.csrf_token;
+                localStorage.setItem('csrfToken', data.csrf_token);
+
+                // Check if password change is required
+                if (data.require_password_change) {
+                    // Show change password form
+                    document.getElementById('loginForm').classList.add('hidden');
+                    document.getElementById('changePasswordForm').classList.add('active');
+                    document.getElementById('changePasswordForm').querySelector('[name="current_password"]').value = password;
+                    showToast(data.message || 'You must change the default password', 'warning');
+                } else {
+                    // Normal login - redirect to main page
+                    window.location.href = '/';
+                }
             } else {
-                const data = await res.json();
                 showToast(data.error || 'Login failed', 'error');
             }
-        } catch (err) {
-            showToast('Login failed', 'error');
+        } catch (error) {
+            showToast('Network error', 'error');
         }
     });
 
-    function showToast(message, type) {
+    // Password strength checker
+    document.getElementById('newPassword').addEventListener('input', (e) => {
+        const password = e.target.value;
+        const strengthBar = document.getElementById('passwordStrength');
+        const requirements = document.getElementById('passwordRequirements');
+
+        // Calculate strength
+        let strength = 0;
+        if (password.length >= 8) strength += 1;
+        if (password.length >= 12) strength += 1;
+        if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength += 1;
+        if (/\d/.test(password)) strength += 1;
+        if (/[^a-zA-Z0-9]/.test(password)) strength += 1;
+
+        // Update UI
+        strengthBar.className = 'password-strength';
+        if (password.length === 0) {
+            strengthBar.style.width = '0';
+        } else if (strength <= 2) {
+            strengthBar.classList.add('strength-weak');
+            strengthBar.style.width = '33%';
+            requirements.textContent = 'Weak: add uppercase, numbers, or symbols';
+        } else if (strength <= 3) {
+            strengthBar.classList.add('strength-medium');
+            strengthBar.style.width = '66%';
+            requirements.textContent = 'Medium: consider adding more complexity';
+        } else {
+            strengthBar.classList.add('strength-strong');
+            strengthBar.style.width = '100%';
+            requirements.textContent = '✓ Strong password';
+        }
+    });
+
+    // Change password form handler
+    document.getElementById('changePasswordForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const currentPassword = form.current_password.value;
+        const newPassword = form.new_password.value;
+        const confirmPassword = form.confirm_password.value;
+
+        // Client-side validation
+        if (newPassword.length < 8) {
+            showToast('Password must be at least 8 characters', 'error');
+            return;
+        }
+
+        if (newPassword === currentPassword) {
+            showToast('New password must be different from current', 'error');
+            return;
+        }
+
+        if (newPassword !== confirmPassword) {
+            showToast('Passwords do not match', 'error');
+            return;
+        }
+
+        const btn = document.getElementById('changePasswordBtn');
+        btn.disabled = true;
+        btn.textContent = 'Changing...';
+
+        try {
+            const response = await fetch('/api/auth/change-password', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': csrfToken
+                },
+                body: JSON.stringify({
+                    current_password: currentPassword,
+                    new_password: newPassword
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.ok) {
+                showToast('Password changed successfully! Redirecting...', 'success');
+
+                // Re-login with new password
+                setTimeout(async () => {
+                    const loginResponse = await fetch('/api/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: 'admin', password: newPassword })
+                    });
+
+                    const loginData = await loginResponse.json();
+
+                    if (loginData.ok) {
+                        localStorage.setItem('csrfToken', loginData.csrf_token);
+                        window.location.href = '/';
+                    } else {
+                        showToast('Auto-login failed, please login manually', 'error');
+                        // Show login form again
+                        document.getElementById('changePasswordForm').classList.remove('active');
+                        document.getElementById('loginForm').classList.remove('hidden');
+                    }
+                }, 1000);
+            } else {
+                showToast(data.error || 'Failed to change password', 'error');
+                btn.disabled = false;
+                btn.textContent = 'Change Password';
+            }
+        } catch (error) {
+            showToast('Network error', 'error');
+            btn.disabled = false;
+            btn.textContent = 'Change Password';
+        }
+    });
+
+    function showToast(message, type = 'info') {
         const toast = document.getElementById('toast');
         toast.textContent = message;
-        toast.className = `toast ${type}`;
-        setTimeout(() => toast.classList.add('hidden'), 3000);
+        toast.className = 'toast ' + type;
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 5000);
     }
     </script>
 </body>

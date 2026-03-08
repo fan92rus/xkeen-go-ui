@@ -79,6 +79,21 @@ jobs:
             -X main.gitCommit=${GIT_COMMIT}" \
             -o xkeen-go-keenetic-arm64
 
+      - name: Generate SHA256 checksum
+        working-directory: xkeen-go
+        run: |
+          # Generate checksum for binary integrity verification
+          sha256sum xkeen-go-keenetic-arm64 > xkeen-go-keenetic-arm64.sha256
+
+          echo "Checksum generated:"
+          cat xkeen-go-keenetic-arm64.sha256
+
+          # Verify checksum format (should be: "hash  filename")
+          if [ $(wc -w < xkeen-go-keenetic-arm64.sha256) -ne 2 ]; then
+            echo "ERROR: Invalid checksum format"
+            exit 1
+          fi
+
       - name: Compress with UPX
         run: |
           sudo apt-get update && sudo apt-get install -y upx-ucl
@@ -127,13 +142,24 @@ jobs:
           ./xkeen-go-keenetic-arm64 install
           /opt/etc/init.d/xkeen-go restart
           \`\`\`
+
+          ### Verify Download (Optional)
+          \`\`\`sh
+          # Download checksum file
+          wget https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag }}/xkeen-go-keenetic-arm64.sha256
+
+          # Verify integrity
+          sha256sum -c xkeen-go-keenetic-arm64.sha256
+          # Should output: xkeen-go-keenetic-arm64: OK
+          \`\`\`
           ENDNOTES
 
           gh release create "${{ steps.version.outputs.tag }}" \
             --title "Dev ${{ steps.version.outputs.version }}" \
             --notes-file /tmp/release-notes.md \
             --prerelease \
-            xkeen-go/xkeen-go-keenetic-arm64
+            xkeen-go/xkeen-go-keenetic-arm64 \
+            xkeen-go/xkeen-go-keenetic-arm64.sha256
 
       - name: Summary
         run: |
