@@ -89,14 +89,12 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Configure git for tag operations
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Get all dev releases and keep only the latest
-          gh release list --limit 50 --json tagName,isPrerelease | \
+          echo "Deleting all old dev releases..."
+          gh release list --limit 100 --json tagName,isPrerelease | \
             jq -r '.[] | select(.tagName | test("-dev\\.")) | .tagName' | \
-            tail -n +2 | \
             while read tag; do
               echo "Deleting old dev release: $tag"
               gh release delete "$tag" --yes 2>/dev/null || true
