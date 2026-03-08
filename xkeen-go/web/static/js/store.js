@@ -5,6 +5,7 @@ import * as xkeenService from './services/xkeen.js';
 import * as logsService from './services/logs.js';
 import * as updateService from './services/update.js';
 import * as statusService from './services/status.js';
+import { get } from './services/api.js';
 
 /**
  * Get CSRF token from cookie
@@ -20,6 +21,11 @@ document.addEventListener('alpine:init', () => {
         activeTab: 'editor',
         toast: { message: '', type: '', show: false },
         loading: false,
+
+        // Mode state
+        currentMode: 'xray',        // 'xray' | 'mihomo'
+        xrayAvailable: true,
+        mihomoAvailable: false,
 
         // Data
         files: [],
@@ -134,9 +140,48 @@ document.addEventListener('alpine:init', () => {
         // Config actions
         async loadFiles() {
             try {
-                this.files = await configService.listFiles();
+                const data = await get(`/api/config/files?mode=${this.currentMode}`);
+                this.files = data.files || [];
             } catch (err) {
                 this.showToast('Failed to load files', 'error');
+            }
+        },
+
+        async switchMode(mode) {
+            if (mode === 'mihomo' && !this.mihomoAvailable) {
+                this.showToast('Mihomo is not installed', 'error');
+                return;
+            }
+            if (mode === 'xray' && !this.xrayAvailable) {
+                this.showToast('Xray is not installed', 'error');
+                return;
+            }
+
+            const previousMode = this.currentMode;
+            this.currentFile = null;
+            this.currentMode = mode;
+
+            // Update default log file based on mode
+            if (mode === 'mihomo') {
+                this.logFile = '/opt/var/log/mihomo/access.log';
+            } else {
+                this.logFile = '/opt/var/log/xray/access.log';
+            }
+
+            // Reload files for new mode
+            await this.loadFiles();
+
+            // Dispatch mode change event for editor
+            window.dispatchEvent(new CustomEvent('mode:change', { detail: mode }));
+        },
+
+        async checkModeAvailability() {
+            try {
+                const data = await get('/api/config/mode?current=' + this.currentMode);
+                this.xrayAvailable = data.xray_available;
+                this.mihomoAvailable = data.mihomo_available;
+            } catch (err) {
+                console.error('Failed to check mode availability:', err);
             }
         },
 
@@ -551,6 +596,7 @@ document.addEventListener('alpine:init', () => {
 
         // Init
         init() {
+            this.checkModeAvailability();
             this.loadFiles();
             this.loadXraySettings();
             this.checkUpdate();
