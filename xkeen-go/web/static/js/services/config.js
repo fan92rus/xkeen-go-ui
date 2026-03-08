@@ -2,8 +2,8 @@
 
 import { get, post } from './api.js';
 
-export async function listFiles() {
-    const data = await get('/api/config/files');
+export async function listFiles(mode = 'xray') {
+    const data = await get(`/api/config/files?mode=${mode}`);
     return data.files || [];
 }
 
