@@ -14,6 +14,9 @@ type Config struct {
 	// Port is the HTTP server listen port.
 	Port int `json:"port"`
 
+	// Mode is the current mode: "xray" or "mihomo".
+	Mode string `json:"mode"`
+
 	// XrayConfigDir is the directory containing Xray configuration files.
 	XrayConfigDir string `json:"xray_config_dir"`
 
@@ -74,6 +77,7 @@ type AuthConfig struct {
 func DefaultConfig() *Config {
 	return &Config{
 		Port:           8089,
+		Mode:           "xray",
 		XrayConfigDir:  "/opt/etc/xray/configs",
 		XkeenBinary:    "xkeen",
 		MihomoConfigDir: "/opt/etc/mihomo",
@@ -151,6 +155,11 @@ func (c *Config) SaveConfig(path string) error {
 func (c *Config) Validate() error {
 	if c.Port < 1 || c.Port > 65535 {
 		return errors.New("port must be between 1 and 65535")
+	}
+
+	// Validate mode
+	if c.Mode != "xray" && c.Mode != "mihomo" {
+		c.Mode = "xray" // Default to xray if invalid
 	}
 
 	if c.XrayConfigDir == "" {

@@ -146,21 +146,9 @@
                     <div class="settings-header">
                         <h2 x-text="$store.app.currentMode === 'mihomo' ? 'Mihomo Settings' : 'Xray Settings'"></h2>
 
-                        <!-- Mode Switcher -->
-                        <div class="mode-switcher">
-                            <button @click="$store.app.switchMode('xray')"
-                                    :class="{ active: $store.app.currentMode === 'xray' }"
-                                    :disabled="!$store.app.xrayAvailable"
-                                    class="btn btn-sm">Xray</button>
-                            <button @click="$store.app.switchMode('mihomo')"
-                                    :class="{ active: $store.app.currentMode === 'mihomo' }"
-                                    :disabled="!$store.app.mihomoAvailable"
-                                    class="btn btn-sm">Mihomo</button>
-                        </div>
-
                         <div class="settings-actions">
                             <button @click="$store.app.restartService()"
-                                    class="btn btn-primary">Apply & Restart Xray</button>
+                                    class="btn btn-primary">Apply & Restart</button>
                             <button @click="$store.app.loadXraySettings()"
                                     class="btn">Refresh Settings</button>
                         </div>
@@ -168,6 +156,43 @@
 
                     <div class="settings-grid">
                         <div class="settings-section">
+                        <h3>Mode</h3>
+
+                        <div class="setting-row">
+                            <label>Active mode:</label>
+                            <div class="mode-selector">
+                                <button @click="$store.app.switchMode('xray')"
+                                        :class="{ active: $store.app.currentMode === 'xray' }"
+                                        :disabled="!$store.app.xrayAvailable"
+                                        class="btn btn-mode">
+                                    <span class="mode-icon">X</span>
+                                    Xray
+                                </button>
+                                <button @click="$store.app.switchMode('mihomo')"
+                                        :class="{ active: $store.app.currentMode === 'mihomo' }"
+                                        :disabled="!$store.app.mihomoAvailable"
+                                        class="btn btn-mode">
+                                    <span class="mode-icon">M</span>
+                                    Mihomo
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="setting-info">
+                            <p><strong>Current mode:</strong> <span x-text="$store.app.currentMode === 'mihomo' ? 'Mihomo (YAML configs)' : 'Xray (JSON configs)'"></span></p>
+                            <p x-show="!$store.app.mihomoAvailable" class="setting-warning-inline">Mihomo config directory not found</p>
+                        </div>
+
+                        <div class="setting-info">
+                            <p><strong>Mode descriptions:</strong></p>
+                            <ul>
+                                <li><strong>Xray</strong> - Use Xray core with JSON configuration files</li>
+                                <li><strong>Mihomo</strong> - Use Mihomo (Clash.Meta) core with YAML configuration files</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
                         <h3>Logging</h3>
 
                         <div class="setting-row">
@@ -470,7 +495,7 @@
         "imports": {
             "codemirror": "https://esm.sh/codemirror@6.0.1",
             "@codemirror/lang-json": "https://esm.sh/@codemirror/lang-json@6.0.1",
-            "@codemirror/lang-yaml": "https://esm.sh/@codemirror/lang-yaml@6.0.1",
+            "@codemirror/lang-yaml": "https://esm.sh/@codemirror/lang-yaml@6.1.2",
             "@codemirror/theme-one-dark": "https://esm.sh/@codemirror/theme-one-dark@6.1.2",
             "@codemirror/merge": "https://esm.sh/@codemirror/merge@6.0.0",
             "@codemirror/state": "https://esm.sh/@codemirror/state@6.4.1",

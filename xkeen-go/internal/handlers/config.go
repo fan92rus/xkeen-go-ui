@@ -24,10 +24,12 @@ type ConfigHandler struct {
 	defaultPath     string
 	xrayConfigDir   string
 	mihomoConfigDir string
+	configPath      string
+	currentMode     string // "xray" or "mihomo"
 }
 
 // NewConfigHandler creates a new ConfigHandler.
-func NewConfigHandler(allowedRoots []string, backupDir, xrayConfigDir, mihomoConfigDir string) *ConfigHandler {
+func NewConfigHandler(allowedRoots []string, backupDir, xrayConfigDir, mihomoConfigDir, configPath, initialMode string) *ConfigHandler {
 	validator, err := utils.NewPathValidator(allowedRoots)
 	if err != nil {
 		log.Printf("Warning: failed to create path validator: %v", err)
@@ -38,6 +40,8 @@ func NewConfigHandler(allowedRoots []string, backupDir, xrayConfigDir, mihomoCon
 		defaultPath:     xrayConfigDir,
 		xrayConfigDir:   xrayConfigDir,
 		mihomoConfigDir: mihomoConfigDir,
+		configPath:      configPath,
+		currentMode:     initialMode,
 	}
 }
 
@@ -195,17 +199,84 @@ func (h *ConfigHandler) GetMode(w http.ResponseWriter, r *http.Request) {
 	xrayAvailable := h.dirExists(h.xrayConfigDir)
 	mihomoAvailable := h.dirExists(h.mihomoConfigDir)
 
-	mode := "xray"
-	queryMode := r.URL.Query().Get("current")
-	if queryMode == "mihomo" {
-		mode = "mihomo"
-	}
-
 	h.respondJSON(w, http.StatusOK, ModeInfo{
-		Mode:            mode,
+		Mode:            h.currentMode,
 		XrayAvailable:   xrayAvailable,
 		MihomoAvailable: mihomoAvailable,
 	})
+}
+
+// SetMode sets the current mode.
+// POST /api/config/mode
+func (h *ConfigHandler) SetMode(w http.ResponseWriter, r *http.Request) {
+	var req ModeRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.respondError(w, http.StatusBadRequest, fmt.Sprintf("invalid request body: %v", err))
+		return
+	}
+
+	if req.Mode != "xray" && req.Mode != "mihomo" {
+		h.respondError(w, http.StatusBadRequest, "mode must be 'xray' or 'mihomo'")
+		return
+	}
+
+	// Check availability
+	if req.Mode == "mihomo" && !h.dirExists(h.mihomoConfigDir) {
+		h.respondError(w, http.StatusBadRequest, "mihomo is not available")
+		return
+	}
+	if req.Mode == "xray" && !h.dirExists(h.xrayConfigDir) {
+		h.respondError(w, http.StatusBadRequest, "xray is not available")
+		return
+	}
+
+	// Update mode in memory
+	h.currentMode = req.Mode
+
+	// Save to config file
+	if err := h.saveModeToConfig(req.Mode); err != nil {
+		log.Printf("Warning: failed to save mode to config: %v", err)
+		// Continue anyway, mode is updated in memory
+	}
+
+	h.respondJSON(w, http.StatusOK, map[string]interface{}{
+		"success": true,
+		"mode":    req.Mode,
+	})
+}
+
+// saveModeToConfig saves the mode to the config file.
+func (h *ConfigHandler) saveModeToConfig(mode string) error {
+	if h.configPath == "" {
+		return nil
+	}
+
+	// Read existing config
+	data, err := os.ReadFile(h.configPath)
+	if err != nil {
+		return fmt.Errorf("failed to read config file: %w", err)
+	}
+
+	// Parse as generic map to preserve all fields
+	var config map[string]interface{}
+	if err := json.Unmarshal(data, &config); err != nil {
+		return fmt.Errorf("failed to parse config file: %w", err)
+	}
+
+	// Update mode
+	config["mode"] = mode
+
+	// Write back
+	newData, err := json.MarshalIndent(config, "", "    ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
+	}
+
+	if err := os.WriteFile(h.configPath, newData, 0644); err != nil {
+		return fmt.Errorf("failed to write config file: %w", err)
+	}
+
+	return nil
 }
 
 // dirExists checks if a directory exists.
@@ -753,6 +824,7 @@ func (h *ConfigHandler) GetBackupContent(w http.ResponseWriter, r *http.Request)
 // RegisterConfigRoutes registers config-related routes.
 func RegisterConfigRoutes(r *mux.Router, handler *ConfigHandler) {
 	r.HandleFunc("/config/mode", handler.GetMode).Methods("GET")
+	r.HandleFunc("/config/mode", handler.SetMode).Methods("POST")
 	r.HandleFunc("/config/files", handler.ListFiles).Methods("GET")
 	r.HandleFunc("/config/file", handler.ReadFile).Methods("GET")
 	r.HandleFunc("/config/file", handler.WriteFile).Methods("POST")
