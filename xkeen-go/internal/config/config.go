@@ -20,6 +20,12 @@ type Config struct {
 	// XkeenBinary is the path or name of the xkeen binary.
 	XkeenBinary string `json:"xkeen_binary"`
 
+	// MihomoConfigDir is the directory containing Mihomo configuration files.
+	MihomoConfigDir string `json:"mihomo_config_dir"`
+
+	// MihomoBinary is the path or name of the mihomo binary.
+	MihomoBinary string `json:"mihomo_binary"`
+
 	// AllowedRoots defines the allowed directories for file operations.
 	AllowedRoots []string `json:"allowed_roots"`
 
@@ -67,9 +73,11 @@ type AuthConfig struct {
 // DefaultConfig returns a configuration with sensible defaults.
 func DefaultConfig() *Config {
 	return &Config{
-		Port:          8089,
-		XrayConfigDir: "/opt/etc/xray/configs",
-		XkeenBinary:   "xkeen",
+		Port:           8089,
+		XrayConfigDir:  "/opt/etc/xray/configs",
+		XkeenBinary:    "xkeen",
+		MihomoConfigDir: "/opt/etc/mihomo",
+		MihomoBinary:    "mihomo",
 		AllowedRoots: []string{
 			"/opt/etc/xray",
 			"/opt/etc/xkeen",
