@@ -19,21 +19,25 @@ import (
 
 // ConfigHandler handles config file operations.
 type ConfigHandler struct {
-	validator    *utils.PathValidator
-	backupDir    string
-	defaultPath   string
+	validator       *utils.PathValidator
+	backupDir       string
+	defaultPath     string
+	xrayConfigDir   string
+	mihomoConfigDir string
 }
 
 // NewConfigHandler creates a new ConfigHandler.
-func NewConfigHandler(allowedRoots []string, backupDir string, defaultPath string) *ConfigHandler {
+func NewConfigHandler(allowedRoots []string, backupDir, xrayConfigDir, mihomoConfigDir string) *ConfigHandler {
 	validator, err := utils.NewPathValidator(allowedRoots)
 	if err != nil {
 		log.Printf("Warning: failed to create path validator: %v", err)
 	}
 	return &ConfigHandler{
-		validator:  validator,
-		backupDir:  backupDir,
-		defaultPath: defaultPath,
+		validator:       validator,
+		backupDir:       backupDir,
+		defaultPath:     xrayConfigDir,
+		xrayConfigDir:   xrayConfigDir,
+		mihomoConfigDir: mihomoConfigDir,
 	}
 }
 
@@ -44,6 +48,30 @@ type FileInfo struct {
 	Size     int64  `json:"size"`
 	Modified int64  `json:"modified"`
 	IsDir    bool   `json:"is_dir"`
+}
+
+// ModeInfo represents mode availability information.
+type ModeInfo struct {
+	Mode            string `json:"mode"`
+	XrayAvailable   bool   `json:"xray_available"`
+	MihomoAvailable bool   `json:"mihomo_available"`
+}
+
+// ModeRequest is the request body for SetMode.
+type ModeRequest struct {
+	Mode string `json:"mode"` // "xray" or "mihomo"
+}
+
+// isYAMLFile checks if a file is a YAML file.
+func isYAMLFile(name string) bool {
+	lower := strings.ToLower(name)
+	return strings.HasSuffix(lower, ".yml") || strings.HasSuffix(lower, ".yaml")
+}
+
+// isJSONFile checks if a file is a JSON/JSONC file.
+func isJSONFile(name string) bool {
+	lower := strings.ToLower(name)
+	return strings.HasSuffix(lower, ".json") || strings.HasSuffix(lower, ".jsonc")
 }
 
 // ListFilesResponse is the response for the ListFiles endpoint.
@@ -71,11 +99,18 @@ type ErrorResponse struct {
 }
 
 // ListFiles returns a list of config files in the specified directory.
-// GET /api/config/files?path=/opt/etc/xray/configs
+// GET /api/config/files?path=/opt/etc/xray/configs&mode=xray
 func (h *ConfigHandler) ListFiles(w http.ResponseWriter, r *http.Request) {
 	queryPath := r.URL.Query().Get("path")
+	mode := r.URL.Query().Get("mode")
+
+	// Determine default path based on mode
 	if queryPath == "" {
-		queryPath = h.defaultPath
+		if mode == "mihomo" {
+			queryPath = h.mihomoConfigDir
+		} else {
+			queryPath = h.xrayConfigDir
+		}
 	}
 
 	// Validate path
@@ -96,12 +131,12 @@ func (h *ConfigHandler) ListFiles(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Filter JSON/JSONC files, exclude backups directory
+	// Filter files based on mode - show all config files
 	files := []FileInfo{}
 	for _, entry := range entries {
 		name := entry.Name()
 
-		// Skip backups directory - it's an internal implementation detail
+		// Skip backups directory
 		if entry.IsDir() && name == "backups" {
 			continue
 		}
@@ -111,17 +146,40 @@ func (h *ConfigHandler) ListFiles(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 
-		isJSONFile := strings.HasSuffix(strings.ToLower(name), ".json") ||
-			strings.HasSuffix(strings.ToLower(name), ".jsonc")
-
-		if entry.IsDir() || isJSONFile {
+		// For directories, always include
+		if entry.IsDir() {
 			files = append(files, FileInfo{
 				Name:     name,
 				Path:     filepath.Join(cleanPath, name),
 				Size:     info.Size(),
 				Modified: info.ModTime().Unix(),
-				IsDir:    entry.IsDir(),
+				IsDir:    true,
 			})
+			continue
+		}
+
+		// For files, include based on mode
+		if mode == "mihomo" {
+			if isYAMLFile(name) {
+				files = append(files, FileInfo{
+					Name:     name,
+					Path:     filepath.Join(cleanPath, name),
+					Size:     info.Size(),
+					Modified: info.ModTime().Unix(),
+					IsDir:    false,
+				})
+			}
+		} else {
+			// Xray mode - show JSON/JSONC files
+			if isJSONFile(name) {
+				files = append(files, FileInfo{
+					Name:     name,
+					Path:     filepath.Join(cleanPath, name),
+					Size:     info.Size(),
+					Modified: info.ModTime().Unix(),
+					IsDir:    false,
+				})
+			}
 		}
 	}
 
@@ -129,6 +187,34 @@ func (h *ConfigHandler) ListFiles(w http.ResponseWriter, r *http.Request) {
 		Path:  cleanPath,
 		Files: files,
 	})
+}
+
+// GetMode returns current mode and availability.
+// GET /api/config/mode
+func (h *ConfigHandler) GetMode(w http.ResponseWriter, r *http.Request) {
+	xrayAvailable := h.dirExists(h.xrayConfigDir)
+	mihomoAvailable := h.dirExists(h.mihomoConfigDir)
+
+	mode := "xray"
+	queryMode := r.URL.Query().Get("current")
+	if queryMode == "mihomo" {
+		mode = "mihomo"
+	}
+
+	h.respondJSON(w, http.StatusOK, ModeInfo{
+		Mode:            mode,
+		XrayAvailable:   xrayAvailable,
+		MihomoAvailable: mihomoAvailable,
+	})
+}
+
+// dirExists checks if a directory exists.
+func (h *ConfigHandler) dirExists(path string) bool {
+	info, err := os.Stat(path)
+	if err != nil {
+		return false
+	}
+	return info.IsDir()
 }
 
 // ReadFile returns the content of a config file.
@@ -651,6 +737,7 @@ func (h *ConfigHandler) GetBackupContent(w http.ResponseWriter, r *http.Request)
 
 // RegisterConfigRoutes registers config-related routes.
 func RegisterConfigRoutes(r *mux.Router, handler *ConfigHandler) {
+	r.HandleFunc("/config/mode", handler.GetMode).Methods("GET")
 	r.HandleFunc("/config/files", handler.ListFiles).Methods("GET")
 	r.HandleFunc("/config/file", handler.ReadFile).Methods("GET")
 	r.HandleFunc("/config/file", handler.WriteFile).Methods("POST")
