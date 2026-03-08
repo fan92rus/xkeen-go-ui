@@ -4,14 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>">
-    <title>XKEEN-GO Config Editor</title>
+    <title>XKEEN-GO Редактор конфигураций</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body x-data x-init="$store.app.init()">
     <div class="app">
         <!-- Header -->
         <header class="header">
-            <h1>XKEEN Config Editor</h1>
+            <h1>XKEEN Редактор конфигураций</h1>
             <div class="actions">
                 <!-- Service Status & Controls -->
                 <div x-data="service" class="service-controls">
@@ -19,17 +19,17 @@
                           x-text="$store.app.serviceStatus"></span>
                     <button @click="start()"
                             :disabled="$store.app.serviceStatus === 'running'"
-                            class="btn btn-sm">Start</button>
+                            class="btn btn-sm">Запуск</button>
                     <button @click="stop()"
                             :disabled="$store.app.serviceStatus === 'stopped'"
-                            class="btn btn-sm">Stop</button>
+                            class="btn btn-sm">Стоп</button>
                 </div>
                 <button @click="window.dispatchEvent(new CustomEvent('editor:save'))"
-                        class="btn btn-primary">Save</button>
+                        class="btn btn-primary">Сохранить</button>
                 <button @click="$store.app.restartService()"
-                        class="btn btn-danger">Restart Xkeen</button>
+                        class="btn btn-danger">Перезапуск Xkeen</button>
                 <button @click="$store.app.logout()"
-                        class="btn">Logout</button>
+                        class="btn">Выход</button>
             </div>
         </header>
 
@@ -37,16 +37,16 @@
         <nav class="tabs">
             <button class="tab"
                     :class="{ 'active': $store.app.activeTab === 'editor' }"
-                    @click="$store.app.activeTab = 'editor'">Editor</button>
+                    @click="$store.app.activeTab = 'editor'">Редактор</button>
             <button class="tab"
                     :class="{ 'active': $store.app.activeTab === 'logs' }"
-                    @click="$store.app.activeTab = 'logs'">Logs</button>
+                    @click="$store.app.activeTab = 'logs'">Логи</button>
             <button class="tab"
                     :class="{ 'active': $store.app.activeTab === 'settings' }"
-                    @click="$store.app.activeTab = 'settings'">Settings</button>
+                    @click="$store.app.activeTab = 'settings'">Настройки</button>
             <button class="tab"
                     :class="{ 'active': $store.app.activeTab === 'commands' }"
-                    @click="$store.app.activeTab = 'commands'">Commands</button>
+                    @click="$store.app.activeTab = 'commands'">Команды</button>
         </nav>
 
         <!-- Main Content -->
@@ -58,7 +58,7 @@
                      class="tab-content"
                      :class="{ 'active': $store.app.activeTab === 'editor' }">
                 <aside class="sidebar">
-                    <h2>Config Files</h2>
+                    <h2>Файлы конфигурации</h2>
                     <ul class="file-list">
                         <template x-for="file in $store.app.files" :key="file.path">
                             <li :class="{ 'active': $store.app.currentFile?.path === file.path }"
@@ -70,16 +70,16 @@
 
                 <section class="editor-container">
                     <div class="editor-header">
-                        <span x-text="$store.app.currentFile?.path || 'No file selected'"></span>
+                        <span x-text="$store.app.currentFile?.path || 'Файл не выбран'"></span>
                         <div class="editor-actions">
                             <span :class="$store.app.isValidJson === false ? 'error' : ''"
-                                  x-text="$store.app.isValidJson === false ? 'Invalid JSON' : 'Valid JSON'"></span>
+                                  x-text="$store.app.isValidJson === false ? 'Неверный JSON' : 'Верный JSON'"></span>
                             <button x-show="$store.app.currentFile"
                                     @click="showDiff()"
-                                    class="btn btn-sm">Diff</button>
+                                    class="btn btn-sm">Изменения</button>
                             <button x-show="$store.app.currentFile"
                                     @click="showBackups()"
-                                    class="btn btn-sm">Backups</button>
+                                    class="btn btn-sm">Резервные копии</button>
                         </div>
                     </div>
                     <div x-ref="editor" id="editor"></div>
@@ -97,14 +97,14 @@
                     <select x-model="$store.app.logFile" @change="$store.app.loadLogs()">
                         <template x-if="$store.app.currentMode === 'xray'">
                             <template>
-                                <option value="/opt/var/log/xray/access.log">Access Log</option>
-                                <option value="/opt/var/log/xray/error.log">Error Log</option>
+                                <option value="/opt/var/log/xray/access.log">Журнал доступа</option>
+                                <option value="/opt/var/log/xray/error.log">Журнал ошибок</option>
                             </template>
                         </template>
                         <template x-if="$store.app.currentMode === 'mihomo'">
                             <template>
-                                <option value="/opt/var/log/mihomo/access.log">Access Log</option>
-                                <option value="/opt/var/log/mihomo/error.log">Error Log</option>
+                                <option value="/opt/var/log/mihomo/access.log">Журнал доступа</option>
+                                <option value="/opt/var/log/mihomo/error.log">Журнал ошибок</option>
                             </template>
                         </template>
                     </select>
@@ -112,17 +112,17 @@
                     <div class="logs-filters">
                         <input type="text"
                                x-model="$store.app.logSearch"
-                               placeholder="Search logs...">
+                               placeholder="Поиск в логах...">
                         <select x-model="$store.app.logFilter">
-                            <option value="all">All levels</option>
-                            <option value="error">Errors</option>
-                            <option value="warn">Warnings</option>
-                            <option value="info">Info</option>
+                            <option value="all">Все уровни</option>
+                            <option value="error">Ошибки</option>
+                            <option value="warn">Предупреждения</option>
+                            <option value="info">Информация</option>
                         </select>
                     </div>
 
-                    <button @click="$store.app.clearLogs()" class="btn">Clear</button>
-                    <button @click="$store.app.loadLogs()" class="btn">Refresh</button>
+                    <button @click="$store.app.clearLogs()" class="btn">Очистить</button>
+                    <button @click="$store.app.loadLogs()" class="btn">Обновить</button>
                 </div>
 
                 <div class="logs-container">
@@ -144,22 +144,20 @@
                      :class="{ 'active': $store.app.activeTab === 'settings' }">
                 <div class="settings-container">
                     <div class="settings-header">
-                        <h2 x-text="$store.app.currentMode === 'mihomo' ? 'Mihomo Settings' : 'Xray Settings'"></h2>
-
                         <div class="settings-actions">
                             <button @click="$store.app.restartService()"
-                                    class="btn btn-primary">Apply & Restart</button>
+                                    class="btn btn-primary">Применить и перезапустить</button>
                             <button @click="$store.app.loadXraySettings()"
-                                    class="btn">Refresh Settings</button>
+                                    class="btn">Обновить настройки</button>
                         </div>
                     </div>
 
                     <div class="settings-grid">
                         <div class="settings-section">
-                        <h3>Mode</h3>
+                        <h3>Режим</h3>
 
                         <div class="setting-row">
-                            <label>Active mode:</label>
+                            <label>Активный режим:</label>
                             <div class="mode-selector">
                                 <button @click="$store.app.switchMode('xray')"
                                         :class="{ active: $store.app.currentMode === 'xray' }"
@@ -179,24 +177,24 @@
                         </div>
 
                         <div class="setting-info">
-                            <p><strong>Current mode:</strong> <span x-text="$store.app.currentMode === 'mihomo' ? 'Mihomo (YAML configs)' : 'Xray (JSON configs)'"></span></p>
-                            <p x-show="!$store.app.mihomoAvailable" class="setting-warning-inline">Mihomo config directory not found</p>
+                            <p><strong>Текущий режим:</strong> <span x-text="$store.app.currentMode === 'mihomo' ? 'Mihomo (YAML конфигурации)' : 'Xray (JSON конфигурации)'"></span></p>
+                            <p x-show="!$store.app.mihomoAvailable" class="setting-warning-inline">Директория конфигураций Mihomo не найдена</p>
                         </div>
 
                         <div class="setting-info">
-                            <p><strong>Mode descriptions:</strong></p>
+                            <p><strong>Описание режимов:</strong></p>
                             <ul>
-                                <li><strong>Xray</strong> - Use Xray core with JSON configuration files</li>
-                                <li><strong>Mihomo</strong> - Use Mihomo (Clash.Meta) core with YAML configuration files</li>
+                                <li><strong>Xray</strong> — Использует ядро Xray с JSON файлами конфигурации</li>
+                                <li><strong>Mihomo</strong> — Использует ядро Mihomo (Clash.Meta) с YAML файлами конфигурации</li>
                             </ul>
                         </div>
                     </div>
 
                     <div class="settings-section">
-                        <h3>Logging</h3>
+                        <h3>Логирование</h3>
 
                         <div class="setting-row">
-                            <label for="logLevel">Log Level:</label>
+                            <label for="logLevel">Уровень логов:</label>
                             <select id="logLevel"
                                     x-model="$store.app.xraySettings.logLevel"
                                     @change="$store.app.updateLogLevel()">
@@ -207,77 +205,77 @@
                         </div>
 
                         <div class="setting-info">
-                            <p><strong>Log level descriptions:</strong></p>
+                            <p><strong>Описание уровней:</strong></p>
                             <ul>
-                                <li><strong>DEBUG</strong> - Detailed debug information (verbose)</li>
-                                <li><strong>INFO</strong> - General operational information</li>
-                                <li><strong>WARNING</strong> - Warning messages only</li>
-                                <li><strong>ERROR</strong> - Error messages only</li>
-                                <li><strong>NONE</strong> - Disable logging</li>
+                                <li><strong>DEBUG</strong> — Подробная отладочная информация</li>
+                                <li><strong>INFO</strong> — Общая информация о работе</li>
+                                <li><strong>WARNING</strong> — Только предупреждения</li>
+                                <li><strong>ERROR</strong> — Только ошибки</li>
+                                <li><strong>NONE</strong> — Отключить логирование</li>
                             </ul>
                         </div>
 
                         <div class="setting-info">
-                            <p><strong>Current log files:</strong></p>
-                            <p>Access log: <code x-text="$store.app.xraySettings.accessLog"></code></p>
-                            <p>Error log: <code x-text="$store.app.xraySettings.errorLog"></code></p>
+                            <p><strong>Текущие файлы логов:</strong></p>
+                            <p>Лог доступа: <code x-text="$store.app.xraySettings.accessLog"></code></p>
+                            <p>Лог ошибок: <code x-text="$store.app.xraySettings.errorLog"></code></p>
                         </div>
 
                         <div class="setting-warning" x-show="$store.app.xraySettings.logLevel === 'none'">
-                            <p>Warning: Logging is disabled. No logs will be written to files.</p>
+                            <p>Внимание: Логирование отключено. Логи не будут записываться в файлы.</p>
                         </div>
                     </div>
 
                     <div class="settings-section">
-                        <h3>Updates</h3>
+                        <h3>Обновления</h3>
 
                         <div class="update-status">
                             <div class="setting-row">
-                                <label>Current version:</label>
+                                <label>Текущая версия:</label>
                                 <span class="version-info" x-text="$store.app.currentVersion"></span>
                                 <span x-show="$store.app.updateInfo.is_prerelease" class="dev-badge">dev</span>
                             </div>
 
                             <div class="setting-row" x-show="$store.app.updateInfo.latest_version">
-                                <label>Latest version:</label>
+                                <label>Последняя версия:</label>
                                 <span class="version-info" x-text="$store.app.updateInfo.latest_version"></span>
                                 <span x-show="$store.app.updateInfo.is_prerelease" class="dev-badge">dev</span>
                                 <a x-show="$store.app.updateInfo.release_url"
                                    :href="$store.app.updateInfo.release_url"
                                    target="_blank"
-                                   class="release-link-small">release notes</a>
+                                   class="release-link-small">примечания</a>
                             </div>
 
                             <template x-if="$store.app.updateInfo.update_available">
                                 <div class="update-available">
-                                    <p x-text="$store.app.updateInfo.is_prerelease ? 'New dev version available!' : 'New version available!'"></p>
+                                    <p x-text="$store.app.updateInfo.is_prerelease ? 'Доступна новая dev версия!' : 'Доступна новая версия!'"></p>
                                 </div>
                             </template>
 
                             <template x-if="!$store.app.updateInfo.update_available && $store.app.updateInfo.latest_version">
-                                <p class="up-to-date" x-text="$store.app.updateInfo.is_prerelease ? 'You are running the latest dev version.' : 'You are running the latest version.'"></p>
+                                <p class="up-to-date" x-text="$store.app.updateInfo.is_prerelease ? 'Установлена последняя dev версия.' : 'Установлена последняя версия.'"></p>
                             </template>
                         </div>
 
                         <div class="setting-row checkbox-row">
                             <label class="checkbox-label">
                                 <input type="checkbox" x-model="$store.app.checkDevUpdates">
-                                <span>Check for dev updates</span>
+                                <span>Проверять dev обновления</span>
                             </label>
-                            <span class="setting-hint">Development builds contain latest features but may be unstable</span>
+                            <span class="setting-hint">Development-сборки содержат последние функции, но могут быть нестабильны</span>
                         </div>
 
                         <div class="update-actions">
                             <button @click="$store.app.checkUpdate()"
                                     :disabled="$store.app.updateChecking || $store.app.updating"
                                     class="btn"
-                                    x-text="$store.app.updateChecking ? 'Checking...' : 'Check for Updates'"></button>
+                                    x-text="$store.app.updateChecking ? 'Проверка...' : 'Проверить обновления'"></button>
 
                             <template x-if="$store.app.updateInfo.update_available">
                                 <button @click="$store.app.startUpdate()"
                                         :disabled="$store.app.updating"
                                         class="btn btn-primary"
-                                        x-text="$store.app.updating ? 'Updating...' : 'Update Now'"></button>
+                                        x-text="$store.app.updating ? 'Обновление...' : 'Обновить'"></button>
                             </template>
                         </div>
 
@@ -292,41 +290,41 @@
                     </div>
 
                     <div class="settings-section">
-                        <h3>Security</h3>
+                        <h3>Безопасность</h3>
 
                         <div class="password-change-form">
                             <div class="setting-row">
-                                <label for="currentPassword">Current Password:</label>
+                                <label for="currentPassword">Текущий пароль:</label>
                                 <input type="password"
                                        id="currentPassword"
                                        x-model="$store.app.passwordChange.currentPassword"
-                                       placeholder="Enter current password"
+                                       placeholder="Введите текущий пароль"
                                        autocomplete="current-password">
                             </div>
 
                             <div class="setting-row">
-                                <label for="newPassword">New Password:</label>
+                                <label for="newPassword">Новый пароль:</label>
                                 <input type="password"
                                        id="newPassword"
                                        x-model="$store.app.passwordChange.newPassword"
-                                       placeholder="Minimum 8 characters"
+                                       placeholder="Минимум 8 символов"
                                        autocomplete="new-password">
                             </div>
 
                             <div class="setting-row">
-                                <label for="confirmPassword">Confirm Password:</label>
+                                <label for="confirmPassword">Подтверждение пароля:</label>
                                 <input type="password"
                                        id="confirmPassword"
                                        x-model="$store.app.passwordChange.confirmPassword"
-                                       placeholder="Re-enter new password"
+                                       placeholder="Повторите новый пароль"
                                        autocomplete="new-password">
                             </div>
 
                             <div class="setting-info">
-                                <p><strong>Password requirements:</strong></p>
+                                <p><strong>Требования к паролю:</strong></p>
                                 <ul>
-                                    <li>Minimum 8 characters</li>
-                                    <li>Must be different from current password</li>
+                                    <li>Минимум 8 символов</li>
+                                    <li>Должен отличаться от текущего пароля</li>
                                 </ul>
                             </div>
 
@@ -335,17 +333,17 @@
                             </div>
 
                             <div x-show="$store.app.passwordChange.success" class="setting-success">
-                                <p>Password changed successfully!</p>
+                                <p>Пароль успешно изменён!</p>
                             </div>
 
                             <div class="update-actions">
                                 <button @click="$store.app.changePassword()"
                                         :disabled="$store.app.passwordChange.loading"
                                         class="btn btn-primary"
-                                        x-text="$store.app.passwordChange.loading ? 'Changing...' : 'Change Password'"></button>
+                                        x-text="$store.app.passwordChange.loading ? 'Изменение...' : 'Изменить пароль'"></button>
                                 <button @click="$store.app.clearPasswordForm()"
                                         :disabled="$store.app.passwordChange.loading"
-                                        class="btn">Clear</button>
+                                        class="btn">Очистить</button>
                             </div>
                         </div>
                     </div>
@@ -376,7 +374,7 @@
                                                     :class="isDangerous(cmd.name) ? 'btn-danger' : 'btn-primary'"
                                                     @click="executeCommand(cmd.name)"
                                                     :disabled="isLoading(cmd.name)"
-                                                    x-text="isLoading(cmd.name) ? 'Executing...' : (isDangerous(cmd.name) ? 'Execute' : 'Run')">
+                                                    x-text="isLoading(cmd.name) ? 'Выполнение...' : (isDangerous(cmd.name) ? 'Выполнить' : 'Запустить')">
                                             </button>
                                         </div>
                                     </template>
@@ -392,7 +390,7 @@
         <div class="modal-overlay" x-show="$store.app.modal.show" x-transition @click.self="$store.app.closeModal()">
             <div class="modal">
                 <div class="modal-header">
-                    <h3>Command Output: <span x-text="$store.app.modal.command"></span></h3>
+                    <h3>Вывод команды: <span x-text="$store.app.modal.command"></span></h3>
                     <button class="modal-close" @click="$store.app.closeModal()">&times;</button>
                 </div>
                 <div class="modal-body">
@@ -403,13 +401,13 @@
                     <input type="text"
                            x-model="$store.app.inputValue"
                            @keydown.enter="$store.app.sendInput()"
-                           placeholder="Enter input and press Enter..."
+                           placeholder="Введите данные и нажмите Enter..."
                            class="modal-input-field">
-                    <button class="btn btn-primary" @click="$store.app.sendInput()">Send</button>
+                    <button class="btn btn-primary" @click="$store.app.sendInput()">Отправить</button>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn" @click="$store.app.copyModalOutput()">Copy Output</button>
-                    <button class="btn btn-primary" @click="$store.app.closeModal()">Close</button>
+                    <button class="btn" @click="$store.app.copyModalOutput()">Скопировать</button>
+                    <button class="btn btn-primary" @click="$store.app.closeModal()">Закрыть</button>
                 </div>
             </div>
         </div>
@@ -418,15 +416,15 @@
         <div class="modal-overlay" x-show="$store.app.confirm.show" x-transition @click.self="$store.app.cancelConfirm()">
             <div class="modal confirm-dialog">
                 <div class="modal-header">
-                    <h3>Confirm Command</h3>
+                    <h3>Подтверждение команды</h3>
                 </div>
                 <div class="modal-body">
-                    <p>Are you sure you want to execute this command?</p>
+                    <p>Вы уверены, что хотите выполнить эту команду?</p>
                     <p class="confirm-description" x-text="$store.app.confirm.description"></p>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn" @click="$store.app.cancelConfirm()">Cancel</button>
-                    <button class="btn btn-danger" @click="$store.app.executeConfirm()">Execute</button>
+                    <button class="btn" @click="$store.app.cancelConfirm()">Отмена</button>
+                    <button class="btn btn-danger" @click="$store.app.executeConfirm()">Выполнить</button>
                 </div>
             </div>
         </div>
@@ -435,7 +433,7 @@
         <div class="modal-overlay" x-show="$store.app.backupsModal.show" x-transition @click.self="$store.app.closeBackupsModal()">
             <div class="modal modal-large">
                 <div class="modal-header">
-                    <h3>Backups: <span x-text="$store.app.backupsModal.fileName"></span></h3>
+                    <h3>Резервные копии: <span x-text="$store.app.backupsModal.fileName"></span></h3>
                     <button class="modal-close" @click="$store.app.closeBackupsModal()">&times;</button>
                 </div>
                 <div class="modal-body">
@@ -446,22 +444,22 @@
                                  @click="$store.app.selectBackup(backup)">
                                 <span class="backup-time" x-text="$store.app.formatBackupTime(backup.modified)"></span>
                                 <div class="backup-actions">
-                                    <button class="btn btn-sm" @click.stop="$store.app.copyBackupContent(backup)">Copy</button>
-                                    <button class="btn btn-sm btn-primary" @click.stop="$store.app.loadBackupToEditor(backup)">Load</button>
+                                    <button class="btn btn-sm" @click.stop="$store.app.copyBackupContent(backup)">Копировать</button>
+                                    <button class="btn btn-sm btn-primary" @click.stop="$store.app.loadBackupToEditor(backup)">Загрузить</button>
                                 </div>
                             </div>
                         </template>
                     </div>
                     <div class="backups-empty" x-show="$store.app.backupsModal.backups.length === 0">
-                        <p>No backups available</p>
+                        <p>Нет доступных резервных копий</p>
                     </div>
                     <div class="backup-diff" x-show="$store.app.backupsModal.selectedBackup && $store.app.backupsModal.diffContent">
-                        <h4>Diff with current file</h4>
+                        <h4>Сравнение с текущим файлом</h4>
                         <pre class="diff-content" x-html="$store.app.backupsModal.diffContent"></pre>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn" @click="$store.app.closeBackupsModal()">Close</button>
+                    <button class="btn" @click="$store.app.closeBackupsModal()">Закрыть</button>
                 </div>
             </div>
         </div>
@@ -470,14 +468,14 @@
         <div class="modal-overlay" x-show="$store.app.diffModal.show" x-transition @click.self="$store.app.closeDiffModal()">
             <div class="modal modal-large">
                 <div class="modal-header">
-                    <h3>Changes since last save</h3>
+                    <h3>Изменения с последнего сохранения</h3>
                     <button class="modal-close" @click="$store.app.closeDiffModal()">&times;</button>
                 </div>
                 <div class="modal-body">
                     <pre class="diff-content" x-html="$store.app.diffModal.diffContent"></pre>
                 </div>
                 <div class="modal-footer">
-                    <button class="btn btn-primary" @click="$store.app.closeDiffModal()">Close</button>
+                    <button class="btn btn-primary" @click="$store.app.closeDiffModal()">Закрыть</button>
                 </div>
             </div>
         </div>

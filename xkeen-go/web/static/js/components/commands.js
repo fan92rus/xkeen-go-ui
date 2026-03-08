@@ -155,7 +155,7 @@ function commandsComponent() {
         executeCommand(command) {
             if (this.isDangerous(command)) {
                 const cmdInfo = this.getCommandInfo(command);
-                this.$store.app.confirm.description = cmdInfo?.description || `Execute ${command} command`;
+                this.$store.app.confirm.description = cmdInfo?.description || `Выполнить команду ${command}`;
                 this.$store.app.confirm.onConfirm = () => this.doExecute(command);
                 this.$store.app.confirm.show = true;
             } else {
@@ -187,7 +187,7 @@ function commandsComponent() {
             try {
                 await this.executeInteractive(command);
             } catch (err) {
-                this.$store.app.modal.error = 'Failed to execute command: ' + err.message;
+                this.$store.app.modal.error = 'Ошибка выполнения команды: ' + err.message;
             } finally {
                 this.executingCommand = '';
                 this.$store.app.commandComplete = true;
@@ -203,14 +203,14 @@ function commandsComponent() {
                         this.$store.app.interactiveSession = null;
                         this.$store.app.commandComplete = true;
                         if (!msg.success && !this.$store.app.modal.error) {
-                            this.$store.app.modal.error = `Command failed with exit code ${msg.exitCode}`;
+                            this.$store.app.modal.error = `Команда завершилась с кодом ${msg.exitCode}`;
                         }
                         resolve();
                     },
                     (error) => {
                         this.$store.app.interactiveSession = null;
                         this.$store.app.commandComplete = true;
-                        reject(new Error('WebSocket connection error'));
+                        reject(new Error('Ошибка WebSocket соединения'));
                     }
                 );
                 this.$store.app.interactiveSession.connect();
@@ -229,7 +229,7 @@ function commandsComponent() {
             } else if (msg.type === 'complete') {
                 this.$store.app.commandComplete = true;
                 if (!msg.success && !this.$store.app.modal.error) {
-                    this.$store.app.modal.error = `Command failed with exit code ${msg.exitCode}`;
+                    this.$store.app.modal.error = `Команда завершилась с кодом ${msg.exitCode}`;
                 }
             }
         },

@@ -144,7 +144,7 @@ document.addEventListener('alpine:init', () => {
                 const data = await get(`/api/config/files?mode=${this.currentMode}`);
                 this.files = data.files || [];
             } catch (err) {
-                this.showToast('Failed to load files', 'error');
+                this.showToast('Не удалось загрузить файлы', 'error');
             }
         },
 
@@ -154,11 +154,11 @@ document.addEventListener('alpine:init', () => {
             }
 
             if (mode === 'mihomo' && !this.mihomoAvailable) {
-                this.showToast('Mihomo is not installed', 'error');
+                this.showToast('Mihomo не установлен', 'error');
                 return;
             }
             if (mode === 'xray' && !this.xrayAvailable) {
-                this.showToast('Xray is not installed', 'error');
+                this.showToast('Xray не установлен', 'error');
                 return;
             }
 
@@ -183,9 +183,9 @@ document.addEventListener('alpine:init', () => {
                 // Dispatch mode change event for editor
                 window.dispatchEvent(new CustomEvent('mode:change', { detail: mode }));
 
-                this.showToast(`Switched to ${mode}`, 'success');
+                this.showToast(`Переключено на ${mode}`, 'success');
             } catch (err) {
-                this.showToast(err.message || 'Failed to switch mode', 'error');
+                this.showToast(err.message || 'Не удалось переключить режим', 'error');
             }
         },
 
@@ -222,23 +222,23 @@ document.addEventListener('alpine:init', () => {
                     this.lastSavedContent = data.content;  // Store for diff
                 }
             } catch (err) {
-                this.showToast('Failed to load file', 'error');
+                this.showToast('Не удалось загрузить файл', 'error');
             }
         },
 
         async saveFile(content) {
             if (!this.currentFile) {
-                this.showToast('No file selected', 'error');
+                this.showToast('Файл не выбран', 'error');
                 return false;
             }
 
             try {
                 await configService.saveFile(this.currentFile.path, content);
                 this.lastSavedContent = content;  // Update after successful save
-                this.showToast('Saved successfully', 'success');
+                this.showToast('Сохранено успешно', 'success');
                 return true;
             } catch (err) {
-                this.showToast(err.message || 'Save failed', 'error');
+                this.showToast(err.message || 'Ошибка сохранения', 'error');
                 return false;
             }
         },
@@ -255,29 +255,29 @@ document.addEventListener('alpine:init', () => {
         async startService() {
             try {
                 await xkeenService.start();
-                this.showToast('Service starting...', 'success');
+                this.showToast('Запуск сервиса...', 'success');
                 // Status will be updated via SSE
             } catch (err) {
-                this.showToast('Failed to start service', 'error');
+                this.showToast('Не удалось запустить сервис', 'error');
             }
         },
 
         async stopService() {
             try {
                 await xkeenService.stop();
-                this.showToast('Service stopping...', 'success');
+                this.showToast('Остановка сервиса...', 'success');
                 // Status will be updated via SSE
             } catch (err) {
-                this.showToast('Failed to stop service', 'error');
+                this.showToast('Не удалось остановить сервис', 'error');
             }
         },
 
         async restartService() {
             try {
                 await xkeenService.restart();
-                this.showToast('Xkeen restarting...', 'success');
+                this.showToast('Перезапуск Xkeen...', 'success');
             } catch (err) {
-                this.showToast('Restart failed', 'error');
+                this.showToast('Ошибка перезапуска', 'error');
             }
         },
 
@@ -291,16 +291,16 @@ document.addEventListener('alpine:init', () => {
                     this.xraySettings.errorLog = data.error_log || '';
                 }
             } catch (err) {
-                this.showToast('Failed to load Xray settings', 'error');
+                this.showToast('Не удалось загрузить настройки Xray', 'error');
             }
         },
 
         async updateLogLevel() {
             try {
                 const result = await xkeenService.setLogLevel(this.xraySettings.logLevel);
-                this.showToast(result.message || 'Log level updated', 'success');
+                this.showToast(result.message || 'Уровень логирования обновлён', 'success');
             } catch (err) {
-                this.showToast(err.message || 'Failed to update log level', 'error');
+                this.showToast(err.message || 'Не удалось обновить уровень логирования', 'error');
                 this.loadXraySettings();
             }
         },
@@ -310,7 +310,7 @@ document.addEventListener('alpine:init', () => {
             try {
                 this.logs = await logsService.fetchLogs(this.logFile, 100);
             } catch (err) {
-                this.showToast('Failed to load logs', 'error');
+                this.showToast('Не удалось загрузить логи', 'error');
             }
         },
 
@@ -358,9 +358,9 @@ document.addEventListener('alpine:init', () => {
         async copyModalOutput() {
             try {
                 await navigator.clipboard.writeText(this.modal.output);
-                this.showToast('Output copied to clipboard', 'success');
+                this.showToast('Вывод скопирован в буфер обмена', 'success');
             } catch (err) {
-                this.showToast('Failed to copy to clipboard', 'error');
+                this.showToast('Не удалось скопировать в буфер обмена', 'error');
             }
         },
 
@@ -397,7 +397,7 @@ document.addEventListener('alpine:init', () => {
                     await this.selectBackup(this.backupsModal.backups[0]);
                 }
             } catch (err) {
-                this.showToast('Failed to load backups', 'error');
+                this.showToast('Не удалось загрузить резервные копии', 'error');
             }
         },
 
@@ -418,7 +418,7 @@ document.addEventListener('alpine:init', () => {
                 // Compute simple diff
                 this.backupsModal.diffContent = this.computeDiff(currentContent, backupContent);
             } catch (err) {
-                this.showToast('Failed to load backup content', 'error');
+                this.showToast('Не удалось загрузить содержимое резервной копии', 'error');
             }
         },
 
@@ -426,9 +426,9 @@ document.addEventListener('alpine:init', () => {
             try {
                 const content = await configService.getBackupContent(backup.path);
                 await navigator.clipboard.writeText(content);
-                this.showToast('Backup copied to clipboard', 'success');
+                this.showToast('Резервная копия скопирована в буфер обмена', 'success');
             } catch (err) {
-                this.showToast('Failed to copy backup', 'error');
+                this.showToast('Не удалось скопировать резервную копию', 'error');
             }
         },
 
@@ -438,9 +438,9 @@ document.addEventListener('alpine:init', () => {
                 // Dispatch event for editor to handle
                 window.dispatchEvent(new CustomEvent('editor:loadContent', { detail: content }));
                 this.closeBackupsModal();
-                this.showToast('Backup loaded into editor', 'success');
+                this.showToast('Резервная копия загружена в редактор', 'success');
             } catch (err) {
-                this.showToast('Failed to load backup', 'error');
+                this.showToast('Не удалось загрузить резервную копию', 'error');
             }
         },
 
@@ -452,7 +452,7 @@ document.addEventListener('alpine:init', () => {
         // Diff modal actions
         openDiffModal(currentContent, savedContent) {
             if (currentContent === savedContent) {
-                this.showToast('No changes since last save', '');
+                this.showToast('Нет изменений с последнего сохранения', '');
                 return;
             }
             this.diffModal.diffContent = this.computeDiff(currentContent, savedContent);
@@ -512,10 +512,10 @@ document.addEventListener('alpine:init', () => {
                     release_notes: data.release_notes || ''
                 };
                 if (data.error) {
-                    this.showToast('Update check: ' + data.error, 'error');
+                    this.showToast('Проверка обновлений: ' + data.error, 'error');
                 }
             } catch (err) {
-                this.showToast('Failed to check for updates', 'error');
+                this.showToast('Не удалось проверить обновления', 'error');
             } finally {
                 this.updateChecking = false;
             }
@@ -524,7 +524,7 @@ document.addEventListener('alpine:init', () => {
         async startUpdate() {
             this.updating = true;
             this.updateProgress = 0;
-            this.updateStatus = 'Starting update...';
+            this.updateStatus = 'Запуск обновления...';
 
             try {
                 const prerelease = this.checkDevUpdates;
@@ -535,16 +535,16 @@ document.addEventListener('alpine:init', () => {
                         this.updateStatus = data.status;
                     },
                     onComplete: (data) => {
-                        this.showToast(data.message || 'Update complete!', 'success');
+                        this.showToast(data.message || 'Обновление завершено!', 'success');
                         // Page will reload when service restarts
                     },
                     onError: (data) => {
-                        this.showToast('Update failed: ' + data.error, 'error');
+                        this.showToast('Ошибка обновления: ' + data.error, 'error');
                         this.updating = false;
                     }
                 });
             } catch (err) {
-                this.showToast('Update failed: ' + err.message, 'error');
+                this.showToast('Ошибка обновления: ' + err.message, 'error');
                 this.updating = false;
             }
         },
@@ -553,22 +553,22 @@ document.addEventListener('alpine:init', () => {
         async changePassword() {
             // Client-side validation
             if (!this.passwordChange.currentPassword || !this.passwordChange.newPassword || !this.passwordChange.confirmPassword) {
-                this.showToast('All password fields are required', 'error');
+                this.showToast('Все поля пароля обязательны', 'error');
                 return false;
             }
 
             if (this.passwordChange.newPassword.length < 8) {
-                this.showToast('New password must be at least 8 characters', 'error');
+                this.showToast('Новый пароль должен содержать минимум 8 символов', 'error');
                 return false;
             }
 
             if (this.passwordChange.newPassword !== this.passwordChange.confirmPassword) {
-                this.showToast('New passwords do not match', 'error');
+                this.showToast('Новые пароли не совпадают', 'error');
                 return false;
             }
 
             if (this.passwordChange.currentPassword === this.passwordChange.newPassword) {
-                this.showToast('New password must be different from current password', 'error');
+                this.showToast('Новый пароль должен отличаться от текущего', 'error');
                 return false;
             }
 
@@ -592,18 +592,18 @@ document.addEventListener('alpine:init', () => {
                 const data = await response.json();
 
                 if (!response.ok || !data.ok) {
-                    this.passwordChange.error = data.error || 'Failed to change password';
-                    this.showToast(data.error || 'Failed to change password', 'error');
+                    this.passwordChange.error = data.error || 'Не удалось изменить пароль';
+                    this.showToast(data.error || 'Не удалось изменить пароль', 'error');
                     return false;
                 }
 
                 this.passwordChange.success = true;
-                this.showToast('Password changed successfully', 'success');
+                this.showToast('Пароль успешно изменён', 'success');
                 this.clearPasswordForm();
                 return true;
             } catch (err) {
-                this.passwordChange.error = err.message || 'Failed to change password';
-                this.showToast('Failed to change password', 'error');
+                this.passwordChange.error = err.message || 'Не удалось изменить пароль';
+                this.showToast('Не удалось изменить пароль', 'error');
                 return false;
             } finally {
                 this.passwordChange.loading = false;
