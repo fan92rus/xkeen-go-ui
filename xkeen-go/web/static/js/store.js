@@ -45,8 +45,10 @@ document.addEventListener('alpine:init', () => {
 
         // Update state
         currentVersion: 'unknown',
+        checkDevUpdates: false,
         updateInfo: {
             update_available: false,
+            is_prerelease: false,
             current_version: '',
             latest_version: '',
             release_url: '',
@@ -429,10 +431,12 @@ document.addEventListener('alpine:init', () => {
         async checkUpdate() {
             this.updateChecking = true;
             try {
-                const data = await updateService.checkUpdate();
+                const prerelease = this.checkDevUpdates;
+                const data = await updateService.checkUpdate(prerelease);
                 this.currentVersion = data.current_version;
                 this.updateInfo = {
                     update_available: data.update_available,
+                    is_prerelease: data.is_prerelease || false,
                     current_version: data.current_version,
                     latest_version: data.latest_version,
                     release_url: data.release_url || '',
@@ -454,7 +458,9 @@ document.addEventListener('alpine:init', () => {
             this.updateStatus = 'Starting update...';
 
             try {
+                const prerelease = this.checkDevUpdates;
                 await updateService.startUpdate({
+                    prerelease: prerelease,
                     onProgress: (data) => {
                         this.updateProgress = data.percent;
                         this.updateStatus = data.status;

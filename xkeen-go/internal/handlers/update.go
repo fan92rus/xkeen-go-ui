@@ -21,12 +21,13 @@ import (
 
 // UpdateHandler handles application update operations.
 type UpdateHandler struct {
-	githubRepo   string
-	binaryName   string
-	installPath  string
-	initScript   string
-	updateScript string
-	downloadURL  string
+	githubRepo     string
+	binaryName     string
+	installPath    string
+	initScript     string
+	updateScript   string
+	downloadURL    string
+	devReleaseTag  string // Latest dev release tag for download
 }
 
 // NewUpdateHandler creates a new UpdateHandler.
@@ -50,6 +51,7 @@ type GitHubRelease struct {
 	Body        string `json:"body"`
 	HTMLURL     string `json:"html_url"`
 	PublishedAt string `json:"published_at"`
+	Prerelease  bool   `json:"prerelease"`
 }
 
 // CheckUpdateResponse is the response for CheckUpdate.
@@ -57,57 +59,31 @@ type CheckUpdateResponse struct {
 	CurrentVersion  string `json:"current_version"`
 	LatestVersion   string `json:"latest_version"`
 	UpdateAvailable bool   `json:"update_available"`
+	IsPrerelease    bool   `json:"is_prerelease"`
 	ReleaseURL      string `json:"release_url,omitempty"`
 	ReleaseNotes    string `json:"release_notes,omitempty"`
 	Error           string `json:"error,omitempty"`
 }
 
 // CheckUpdate checks GitHub for the latest release.
-// GET /api/update/check
+// GET /api/update/check?prerelease=true to check for dev builds
 func (h *UpdateHandler) CheckUpdate(w http.ResponseWriter, r *http.Request) {
 	currentVersion := version.GetVersion()
+	checkPrerelease := r.URL.Query().Get("prerelease") == "true"
 
-	// Create request with timeout
-	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
-	defer cancel()
+	var release *GitHubRelease
+	var err error
 
-	req, err := http.NewRequestWithContext(ctx, "GET",
-		fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", h.githubRepo), nil)
-	if err != nil {
-		h.respondJSON(w, http.StatusInternalServerError, CheckUpdateResponse{
-			CurrentVersion: currentVersion,
-			Error:          fmt.Sprintf("failed to create request: %v", err),
-		})
-		return
+	if checkPrerelease {
+		release, err = h.getLatestPrerelease(r.Context())
+	} else {
+		release, err = h.getLatestStableRelease(r.Context())
 	}
 
-	req.Header.Set("Accept", "application/vnd.github.v3+json")
-	req.Header.Set("User-Agent", "XKEEN-GO/"+currentVersion)
-
-	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		h.respondJSON(w, http.StatusOK, CheckUpdateResponse{
 			CurrentVersion: currentVersion,
-			Error:          fmt.Sprintf("failed to fetch release info: %v", err),
-		})
-		return
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		h.respondJSON(w, http.StatusOK, CheckUpdateResponse{
-			CurrentVersion: currentVersion,
-			Error:          fmt.Sprintf("GitHub API error: %d - %s", resp.StatusCode, string(body)),
-		})
-		return
-	}
-
-	var release GitHubRelease
-	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
-		h.respondJSON(w, http.StatusOK, CheckUpdateResponse{
-			CurrentVersion: currentVersion,
-			Error:          fmt.Sprintf("failed to parse release info: %v", err),
+			Error:          err.Error(),
 		})
 		return
 	}
@@ -115,24 +91,104 @@ func (h *UpdateHandler) CheckUpdate(w http.ResponseWriter, r *http.Request) {
 	// Compare versions
 	updateAvailable := h.compareVersions(currentVersion, release.TagName) < 0
 
+	// Store dev release tag for download if checking prerelease
+	if checkPrerelease && updateAvailable {
+		h.devReleaseTag = release.TagName
+	}
+
 	h.respondJSON(w, http.StatusOK, CheckUpdateResponse{
 		CurrentVersion:  currentVersion,
 		LatestVersion:   release.TagName,
 		UpdateAvailable: updateAvailable,
+		IsPrerelease:    release.Prerelease,
 		ReleaseURL:      release.HTMLURL,
 		ReleaseNotes:    release.Body,
 	})
 }
 
-// compareVersions compares two version strings.
+// getLatestStableRelease fetches the latest stable release from GitHub.
+func (h *UpdateHandler) getLatestStableRelease(ctx context.Context) (*GitHubRelease, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET",
+		fmt.Sprintf("https://api.github.com/repos/%s/releases/latest", h.githubRepo), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %v", err)
+	}
+
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+	req.Header.Set("User-Agent", "XKEEN-GO/"+version.GetVersion())
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch release info: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("GitHub API error: %d - %s", resp.StatusCode, string(body))
+	}
+
+	var release GitHubRelease
+	if err := json.NewDecoder(resp.Body).Decode(&release); err != nil {
+		return nil, fmt.Errorf("failed to parse release info: %v", err)
+	}
+
+	return &release, nil
+}
+
+// getLatestPrerelease fetches the latest dev prerelease from GitHub.
+func (h *UpdateHandler) getLatestPrerelease(ctx context.Context) (*GitHubRelease, error) {
+	req, err := http.NewRequestWithContext(ctx, "GET",
+		fmt.Sprintf("https://api.github.com/repos/%s/releases", h.githubRepo), nil)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %v", err)
+	}
+
+	req.Header.Set("Accept", "application/vnd.github.v3+json")
+	req.Header.Set("User-Agent", "XKEEN-GO/"+version.GetVersion())
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch releases: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("GitHub API error: %d - %s", resp.StatusCode, string(body))
+	}
+
+	var releases []GitHubRelease
+	if err := json.NewDecoder(resp.Body).Decode(&releases); err != nil {
+		return nil, fmt.Errorf("failed to parse releases: %v", err)
+	}
+
+	// Find the latest dev prerelease
+	for i := range releases {
+		if releases[i].Prerelease && strings.Contains(releases[i].TagName, "-dev.") {
+			return &releases[i], nil
+		}
+	}
+
+	// No dev prerelease found, fall back to latest stable
+	return h.getLatestStableRelease(ctx)
+}
+
+// compareVersions compares two version strings (semver-aware).
+// Pre-release versions (e.g., 1.2.3-dev.123) are considered lower than release (1.2.3).
 // Returns: -1 if v1 < v2, 0 if equal, 1 if v1 > v2
 func (h *UpdateHandler) compareVersions(v1, v2 string) int {
 	// Remove 'v' prefix if present
 	v1 = strings.TrimPrefix(v1, "v")
 	v2 = strings.TrimPrefix(v2, "v")
 
-	parts1 := strings.Split(v1, ".")
-	parts2 := strings.Split(v2, ".")
+	// Split off pre-release suffix (e.g., "1.2.3-dev.123" -> "1.2.3", "dev.123")
+	base1, pre1 := splitPreRelease(v1)
+	base2, pre2 := splitPreRelease(v2)
+
+	// Compare numeric parts
+	parts1 := strings.Split(base1, ".")
+	parts2 := strings.Split(base2, ".")
 
 	maxLen := len(parts1)
 	if len(parts2) > maxLen {
@@ -155,7 +211,59 @@ func (h *UpdateHandler) compareVersions(v1, v2 string) int {
 		}
 	}
 
+	// Numeric parts are equal, check pre-release
+	// Pre-release (<base>-something) is lower than release (<base>)
+	if pre1 != "" && pre2 == "" {
+		return -1 // v1 is pre-release, v2 is release
+	}
+	if pre1 == "" && pre2 != "" {
+		return 1 // v1 is release, v2 is pre-release
+	}
+
+	// Both are pre-release, compare timestamps if format is "dev.<timestamp>"
+	if pre1 != "" && pre2 != "" {
+		return comparePrereleaseSuffixes(pre1, pre2)
+	}
+
 	return 0
+}
+
+// splitPreRelease splits version into base and pre-release suffix.
+// e.g., "1.2.3-dev.123" -> ("1.2.3", "dev.123")
+func splitPreRelease(v string) (base, pre string) {
+	idx := strings.Index(v, "-")
+	if idx == -1 {
+		return v, ""
+	}
+	return v[:idx], v[idx+1:]
+}
+
+// comparePrereleaseSuffixes compares two pre-release suffixes.
+// Format expected: "dev.<timestamp>" or similar.
+// Returns: -1 if p1 < p2, 0 if equal, 1 if p1 > p2
+func comparePrereleaseSuffixes(p1, p2 string) int {
+	// Extract timestamp from "dev.1234567890" format
+	ts1 := extractTimestamp(p1)
+	ts2 := extractTimestamp(p2)
+
+	if ts1 < ts2 {
+		return -1
+	} else if ts1 > ts2 {
+		return 1
+	}
+	return 0
+}
+
+// extractTimestamp extracts numeric timestamp from pre-release suffix.
+// e.g., "dev.1709876543" -> 1709876543
+func extractTimestamp(pre string) int64 {
+	// Find the last segment after "."
+	parts := strings.Split(pre, ".")
+	if len(parts) == 0 {
+		return 0
+	}
+	ts, _ := strconv.ParseInt(parts[len(parts)-1], 10, 64)
+	return ts
 }
 
 // ProgressData represents progress information.
@@ -176,7 +284,7 @@ type CompleteData struct {
 }
 
 // StartUpdate starts the update process with SSE progress.
-// POST /api/update/start
+// POST /api/update/start?prerelease=true to download dev build
 func (h *UpdateHandler) StartUpdate(w http.ResponseWriter, r *http.Request) {
 	// Set SSE headers
 	w.Header().Set("Content-Type", "text/event-stream")
@@ -197,11 +305,19 @@ func (h *UpdateHandler) StartUpdate(w http.ResponseWriter, r *http.Request) {
 		flusher.Flush()
 	}
 
+	// Determine download URL
+	prerelease := r.URL.Query().Get("prerelease") == "true"
+	downloadURL := h.downloadURL
+	if prerelease && h.devReleaseTag != "" {
+		downloadURL = fmt.Sprintf("https://github.com/%s/releases/download/%s/%s",
+			h.githubRepo, h.devReleaseTag, h.binaryName)
+	}
+
 	// Step 1: Download
 	sendEvent("progress", ProgressData{Percent: 5, Status: "downloading"})
 
 	tmpFile := "/tmp/" + h.binaryName + ".new"
-	if err := h.downloadFile(r.Context(), tmpFile); err != nil {
+	if err := h.downloadFile(r.Context(), tmpFile, downloadURL); err != nil {
 		sendEvent("error", ErrorData{Error: fmt.Sprintf("Download failed: %v", err)})
 		return
 	}
@@ -263,8 +379,8 @@ func (h *UpdateHandler) StartUpdate(w http.ResponseWriter, r *http.Request) {
 }
 
 // downloadFile downloads a file from URL to path.
-func (h *UpdateHandler) downloadFile(ctx context.Context, path string) error {
-	req, err := http.NewRequestWithContext(ctx, "GET", h.downloadURL, nil)
+func (h *UpdateHandler) downloadFile(ctx context.Context, path, url string) error {
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return err
 	}
