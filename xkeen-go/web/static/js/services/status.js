@@ -15,25 +15,17 @@ export function connectStatusStream(onStatus) {
     eventSource = new EventSource('/api/xkeen/status/stream');
 
     eventSource.addEventListener('status', (e) => {
-        console.log('[SSE] Raw event data:', e.data);
         try {
             const data = JSON.parse(e.data);
             const status = data.running ? 'running' : 'stopped';
-            console.log('[SSE] Parsed status:', status, 'from data:', data);
             onStatus(status);
         } catch (err) {
-            console.error('[SSE] Failed to parse status event:', err, 'raw data:', e.data);
             onStatus('unknown');
         }
     });
 
-    eventSource.onerror = (err) => {
-        console.error('[SSE] Connection error:', err, 'readyState:', eventSource?.readyState);
+    eventSource.onerror = () => {
         // Browser will auto-reconnect
-    };
-
-    eventSource.onopen = () => {
-        console.log('[SSE] Connection opened');
     };
 
     return () => {

@@ -1,30 +1,12 @@
 // components/service.js - Service status and control buttons
+// Status updates are handled via SSE in store.js
 
 document.addEventListener('alpine:init', () => {
     Alpine.data('service', function() {
         return {
-            interval: null,
-
             init() {
-                this.$store.app.fetchServiceStatus();
-                this.startPolling();
-            },
-
-            destroy() {
-                this.stopPolling();
-            },
-
-            startPolling() {
-                this.interval = setInterval(() => {
-                    this.$store.app.fetchServiceStatus();
-                }, 5000);
-            },
-
-            stopPolling() {
-                if (this.interval) {
-                    clearInterval(this.interval);
-                    this.interval = null;
-                }
+                // Status is provided via SSE stream (see store.js init)
+                // No polling needed
             },
 
             start() {
