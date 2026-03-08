@@ -441,16 +441,16 @@
              x-text="$store.app.toast.message"></div>
     </div>
 
-    <!-- CodeMirror importmap -->
+    <!-- CodeMirror importmap (local vendor files) -->
     <script type="importmap">
     {
         "imports": {
-            "codemirror": "https://esm.sh/codemirror@6.0.1",
-            "@codemirror/lang-json": "https://esm.sh/@codemirror/lang-json@6.0.1",
-            "@codemirror/theme-one-dark": "https://esm.sh/@codemirror/theme-one-dark@6.1.2",
-            "@codemirror/merge": "https://esm.sh/@codemirror/merge@6.0.0",
-            "@codemirror/state": "https://esm.sh/@codemirror/state@6.4.1",
-            "@codemirror/view": "https://esm.sh/@codemirror/view@6.26.3"
+            "codemirror": "/static/vendor/codemirror/6.0.1/index.js",
+            "@codemirror/lang-json": "/static/vendor/@codemirror/lang-json/6.0.1/index.js",
+            "@codemirror/theme-one-dark": "/static/vendor/@codemirror/theme-one-dark/6.1.2/index.js",
+            "@codemirror/merge": "/static/vendor/@codemirror/merge/6.0.0/index.js",
+            "@codemirror/state": "/static/vendor/@codemirror/state/6.4.1/index.js",
+            "@codemirror/view": "/static/vendor/@codemirror/view/6.26.3/index.js"
         }
     }
     </script>
@@ -465,8 +465,8 @@
         import '/static/js/components/service.js';
         import '/static/js/components/commands.js';
 
-        // Then load and start Alpine.js
-        import Alpine from 'https://esm.sh/alpinejs@3.14.3';
+        // Then load and start Alpine.js (local vendor file)
+        import Alpine from '/static/vendor/alpinejs/3.14.3/index.js';
         window.Alpine = Alpine;
         Alpine.start();
     </script>
