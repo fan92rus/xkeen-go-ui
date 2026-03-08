@@ -187,11 +187,13 @@
                             <div class="setting-row">
                                 <label>Current version:</label>
                                 <span class="version-info" x-text="$store.app.currentVersion"></span>
+                                <span x-show="$store.app.updateInfo.is_prerelease" class="dev-badge">dev</span>
                             </div>
 
                             <div class="setting-row" x-show="$store.app.updateInfo.latest_version">
                                 <label>Latest version:</label>
                                 <span class="version-info" x-text="$store.app.updateInfo.latest_version"></span>
+                                <span x-show="$store.app.updateInfo.is_prerelease" class="dev-badge">dev</span>
                                 <a x-show="$store.app.updateInfo.release_url"
                                    :href="$store.app.updateInfo.release_url"
                                    target="_blank"
@@ -200,13 +202,21 @@
 
                             <template x-if="$store.app.updateInfo.update_available">
                                 <div class="update-available">
-                                    <p>New version available!</p>
+                                    <p x-text="$store.app.updateInfo.is_prerelease ? 'New dev version available!' : 'New version available!'"></p>
                                 </div>
                             </template>
 
                             <template x-if="!$store.app.updateInfo.update_available && $store.app.updateInfo.latest_version">
-                                <p class="up-to-date">You are running the latest version.</p>
+                                <p class="up-to-date" x-text="$store.app.updateInfo.is_prerelease ? 'You are running the latest dev version.' : 'You are running the latest version.'"></p>
                             </template>
+                        </div>
+
+                        <div class="setting-row checkbox-row">
+                            <label class="checkbox-label">
+                                <input type="checkbox" x-model="$store.app.checkDevUpdates">
+                                <span>Check for dev updates</span>
+                            </label>
+                            <span class="setting-hint">Development builds contain latest features but may be unstable</span>
                         </div>
 
                         <div class="update-actions">

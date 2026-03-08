@@ -1,0 +1,148 @@
+name: Build Dev Pre-Release
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+    paths:
+      - 'xkeen-go/**'
+      - '.github/workflows/build-dev.yml'
+
+env:
+  GO_VERSION: '1.21'
+
+jobs:
+  build:
+    name: Build Dev Pre-Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Determine version
+        id: version
+        run: |
+          # Get latest stable tag (exclude dev tags)
+          LATEST_TAG=$(git tag -l 'v[0-9]*' | grep -v -- '-dev' | sort -V | tail -1 2>/dev/null || echo "v0.0.0")
+          echo "Latest stable tag: $LATEST_TAG"
+
+          # Strip 'v' prefix
+          BASE_VERSION=${LATEST_TAG#v}
+
+          # Parse version and bump patch
+          MAJOR=$(echo $BASE_VERSION | cut -d. -f1)
+          MINOR=$(echo $BASE_VERSION | cut -d. -f2)
+          PATCH=$(echo $BASE_VERSION | cut -d. -f3)
+
+          # Increment patch for dev version (changes since last release)
+          PATCH=$((PATCH + 1))
+
+          # Unix timestamp for unique dev version
+          UNIX_TIME=$(date +%s)
+
+          # Dev version: next patch + dev + timestamp
+          DEV_VERSION="${MAJOR}.${MINOR}.${PATCH}-dev.${UNIX_TIME}"
+          DEV_TAG="v${DEV_VERSION}"
+
+          echo "Dev version: ${DEV_VERSION}"
+          echo "Dev tag: ${DEV_TAG}"
+
+          echo "version=${DEV_VERSION}" >> $GITHUB_OUTPUT
+          echo "tag=${DEV_TAG}" >> $GITHUB_OUTPUT
+          echo "short_sha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Build binary
+        working-directory: xkeen-go
+        env:
+          CGO_ENABLED: 0
+          GOOS: linux
+          GOARCH: arm64
+        run: |
+          BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          GIT_COMMIT=${{ steps.version.outputs.short_sha }}
+
+          go build -ldflags "-s -w \
+            -X main.appVersion=${{ steps.version.outputs.version }} \
+            -X main.buildDate=${BUILD_DATE} \
+            -X main.gitCommit=${GIT_COMMIT}" \
+            -o xkeen-go-keenetic-arm64
+
+      - name: Compress with UPX
+        run: |
+          sudo apt-get update && sudo apt-get install -y upx-ucl
+          upx --best --lzma xkeen-go/xkeen-go-keenetic-arm64 -o xkeen-go/xkeen-go-keenetic-arm64-upx
+          mv xkeen-go/xkeen-go-keenetic-arm64-upx xkeen-go/xkeen-go-keenetic-arm64
+
+      - name: Delete old dev releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Configure git for tag operations
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Get all dev releases and keep only the latest
+          gh release list --limit 50 --json tagName,isPrerelease | \
+            jq -r '.[] | select(.tagName | test("-dev\\.")) | .tagName' | \
+            tail -n +2 | \
+            while read tag; do
+              echo "Deleting old dev release: $tag"
+              gh release delete "$tag" --yes 2>/dev/null || true
+              git push --delete origin "$tag" 2>/dev/null || true
+            done
+
+      - name: Create dev pre-release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Skip if tag already exists (concurrent workflow)
+          if git tag -l | grep -q "^${{ steps.version.outputs.tag }}$"; then
+            echo "Tag ${{ steps.version.outputs.tag }} already exists, skipping"
+            exit 0
+          fi
+
+          cat > /tmp/release-notes.md << ENDNOTES
+          ## Dev Build ${{ steps.version.outputs.version }}
+
+          **This is a development build.** Use for testing only.
+
+          | Property | Value |
+          |----------|-------|
+          | Commit | \`${{ steps.version.outputs.short_sha }}\` |
+          | Build date | $(date -u +%Y-%m-%dT%H:%M:%SZ) |
+
+          ### Installation
+          \`\`\`sh
+          chmod +x xkeen-go-keenetic-arm64
+          ./xkeen-go-keenetic-arm64 install
+          /opt/etc/init.d/xkeen-go restart
+          \`\`\`
+          ENDNOTES
+
+          gh release create "${{ steps.version.outputs.tag }}" \
+            --title "Dev ${{ steps.version.outputs.version }}" \
+            --notes-file /tmp/release-notes.md \
+            --prerelease \
+            xkeen-go/xkeen-go-keenetic-arm64
+
+      - name: Summary
+        run: |
+          echo "### Dev Pre-Release Created" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Property | Value |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Version | \`${{ steps.version.outputs.version }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tag | \`${{ steps.version.outputs.tag }}\` |" >> $GITHUB_STEP_SUMMARY
+          echo "| Commit | \`${{ steps.version.outputs.short_sha }}\` |" >> $GITHUB_STEP_SUMMARY

@@ -240,6 +240,7 @@ func (h *ServiceHandler) sendStatusEvent(w http.ResponseWriter, flusher http.Flu
 	}
 
 	data, _ := json.Marshal(status)
+	log.Printf("[SSE] Sending status event: %s", string(data))
 	fmt.Fprintf(w, "event: status\ndata: %s\n\n", data)
 	flusher.Flush()
 	return nil

@@ -4,10 +4,15 @@ const API_BASE = '/api';
 
 /**
  * Check for available updates
+ * @param {boolean} prerelease - Check for dev/prerelease builds
  * @returns {Promise<Object>} Update info with current_version, latest_version, update_available, etc.
  */
-export async function checkUpdate() {
-    const response = await fetch(`${API_BASE}/update/check`, {
+export async function checkUpdate(prerelease = false) {
+    const url = prerelease
+        ? `${API_BASE}/update/check?prerelease=true`
+        : `${API_BASE}/update/check`;
+
+    const response = await fetch(url, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json'
@@ -31,16 +36,23 @@ function getCSRFToken() {
 
 /**
  * Start update and listen to SSE events
- * @param {Object} callbacks - Event callbacks
- * @param {Function} callbacks.onProgress - Called with {percent, status}
- * @param {Function} callbacks.onComplete - Called with {success, message}
- * @param {Function} callbacks.onError - Called with {error}
+ * @param {Object} options - Options and callbacks
+ * @param {boolean} options.prerelease - Download dev/prerelease build
+ * @param {Function} options.onProgress - Called with {percent, status}
+ * @param {Function} options.onComplete - Called with {success, message}
+ * @param {Function} options.onError - Called with {error}
  * @returns {Promise<void>}
  */
-export function startUpdate(callbacks) {
+export function startUpdate(options) {
+    const { prerelease = false, onProgress, onComplete, onError } = options;
+
     return new Promise((resolve, reject) => {
+        const url = prerelease
+            ? `${API_BASE}/update/start?prerelease=true`
+            : `${API_BASE}/update/start`;
+
         // Use fetch with POST and manually parse SSE
-        fetch(`${API_BASE}/update/start`, {
+        fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -79,19 +91,19 @@ export function startUpdate(callbacks) {
 
                                 switch (currentEvent) {
                                     case 'progress':
-                                        if (callbacks.onProgress) {
-                                            callbacks.onProgress(data);
+                                        if (onProgress) {
+                                            onProgress(data);
                                         }
                                         break;
                                     case 'complete':
-                                        if (callbacks.onComplete) {
-                                            callbacks.onComplete(data);
+                                        if (onComplete) {
+                                            onComplete(data);
                                         }
                                         resolve(data);
                                         return;
                                     case 'error':
-                                        if (callbacks.onError) {
-                                            callbacks.onError(data);
+                                        if (onError) {
+                                            onError(data);
                                         }
                                         reject(new Error(data.error));
                                         return;
