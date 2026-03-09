@@ -48,7 +48,6 @@ const translations = {
     // Settings
     xraySettings: 'Настройки Xray',
     mihomoSettings: 'Настройки Mihomo',
-    applyAndRestart: 'Применить и перезапустить',
     refreshSettings: 'Обновить настройки',
 
     // Mode

@@ -73,10 +73,10 @@
                         <span x-text="$store.app.currentFile?.path || 'Файл не выбран'"></span>
                         <div class="editor-actions">
                             <span :class="$store.app.isValidJson === false ? 'error' : ''"
-                                  x-text="$store.app.isValidJson === false ? 'Неверный JSON' : 'Верный JSON'"></span>
+                                  x-text="$store.app.isValidJson === false ? 'Invalid JSON' : 'Valid JSON'"></span>
                             <button x-show="$store.app.currentFile"
                                     @click="showDiff()"
-                                    class="btn btn-sm">Изменения</button>
+                                    class="btn btn-sm">Diff</button>
                             <button x-show="$store.app.currentFile"
                                     @click="showBackups()"
                                     class="btn btn-sm">Резервные копии</button>
@@ -97,14 +97,14 @@
                     <select x-model="$store.app.logFile" @change="$store.app.loadLogs()">
                         <template x-if="$store.app.currentMode === 'xray'">
                             <template>
-                                <option value="/opt/var/log/xray/access.log">Журнал доступа</option>
-                                <option value="/opt/var/log/xray/error.log">Журнал ошибок</option>
+                                <option value="/opt/var/log/xray/access.log">Access Log</option>
+                                <option value="/opt/var/log/xray/error.log">Error Log</option>
                             </template>
                         </template>
                         <template x-if="$store.app.currentMode === 'mihomo'">
                             <template>
-                                <option value="/opt/var/log/mihomo/access.log">Журнал доступа</option>
-                                <option value="/opt/var/log/mihomo/error.log">Журнал ошибок</option>
+                                <option value="/opt/var/log/mihomo/access.log">Access Log</option>
+                                <option value="/opt/var/log/mihomo/error.log">Error Log</option>
                             </template>
                         </template>
                     </select>
@@ -145,8 +145,6 @@
                 <div class="settings-container">
                     <div class="settings-header">
                         <div class="settings-actions">
-                            <button @click="$store.app.restartService()"
-                                    class="btn btn-primary">Применить и перезапустить</button>
                             <button @click="$store.app.loadXraySettings()"
                                     class="btn">Обновить настройки</button>
                         </div>
