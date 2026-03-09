@@ -1,5 +1,5 @@
-// Package main is the entry point for XKEEN-GO.
-// XKEEN-GO is a lightweight web UI for XKeen on Keenetic routers.
+// Package main is the entry point for XKEEN-UI.
+// XKEEN-UI is a lightweight web UI for XKeen on Keenetic routers.
 package main
 
 import (
@@ -74,7 +74,7 @@ CONFIG=/opt/etc/xkeen-ui/config.json
 PIDFILE=/var/run/xkeen-ui.pid
 LOGFILE=/opt/var/log/xkeen-ui.log
 NAME=xkeen-ui
-DESC="XKEEN-GO Web Interface"
+DESC="XKEEN-UI Web Interface"
 
 start() {
     if [ -f "$PIDFILE" ] && kill -0 $(cat "$PIDFILE") 2>/dev/null; then
@@ -188,27 +188,46 @@ func main() {
 }
 
 func printVersion() {
-	fmt.Printf("XKEEN-GO %s\n", appVersion)
+	fmt.Printf("XKEEN-UI %s\n", appVersion)
 	fmt.Printf("Build date: %s\n", buildDate)
 	fmt.Printf("Git commit: %s\n", gitCommit)
 }
 
 func printUsage() {
-	fmt.Println("XKEEN-GO - Web UI for XKeen on Keenetic routers")
+	fmt.Println("XKEEN-UI - Web UI for XKeen on Keenetic routers")
 	fmt.Println()
-	fmt.Println("Usage:")
-	fmt.Printf("  %s           Start web server\n", binaryName)
-	fmt.Printf("  %s install   Install on Keenetic router\n", binaryName)
-	fmt.Printf("  %s uninstall Remove from system\n", binaryName)
-	fmt.Printf("  %s version   Show version info\n", binaryName)
+	fmt.Println("USAGE:")
+	fmt.Printf("    %s [command] [options]\n", binaryName)
 	fmt.Println()
-	fmt.Println("Server options (via config file):")
-	fmt.Println("  -config PATH   Path to config file (default: /opt/etc/xkeen-ui/config.json)")
+	fmt.Println("COMMANDS:")
+	fmt.Println("    install     Install on Keenetic router (requires root)")
+	fmt.Println("    uninstall   Remove from system (requires root)")
+	fmt.Println("    version     Show version information")
+	fmt.Println("    help        Show this help message")
 	fmt.Println()
-	fmt.Println("Examples:")
-	fmt.Printf("  ./xkeen-ui-keenetic-arm64 install\n")
-	fmt.Println("  xkeen-ui start")
-	fmt.Println("  xkeen-ui status")
+	fmt.Println("OPTIONS:")
+	fmt.Println("    -config <path>    Path to config file")
+	fmt.Println("                      (default: /opt/etc/xkeen-ui/config.json)")
+	fmt.Println()
+	fmt.Println("SERVICE CONTROL (after install):")
+	fmt.Println("    xkeen-ui start      Start the service")
+	fmt.Println("    xkeen-ui stop       Stop the service")
+	fmt.Println("    xkeen-ui restart    Restart the service")
+	fmt.Println("    xkeen-ui status     Check service status")
+	fmt.Println("    xkeen-ui log        Tail the log file")
+	fmt.Println()
+	fmt.Println("EXAMPLES:")
+	fmt.Printf("    ./%s install\n", binaryName)
+	fmt.Println("    xkeen-ui start")
+	fmt.Println("    xkeen-ui -config /path/to/config.json")
+	fmt.Println()
+	fmt.Println("FILES:")
+	fmt.Println("    /opt/bin/xkeen-ui-keenetic-arm64    Binary")
+	fmt.Println("    /opt/etc/xkeen-ui/config.json       Configuration")
+	fmt.Println("    /opt/etc/init.d/xkeen-ui            Init script")
+	fmt.Println("    /opt/var/log/xkeen-ui.log           Log file")
+	fmt.Println()
+	fmt.Printf("Web interface: http://<router-ip>:8089\n")
 }
 
 func runServer() {
@@ -240,7 +259,7 @@ func runServer() {
 	version.SetVersion(appVersion, buildDate, gitCommit)
 
 	// Log startup information
-	log.Printf("XKEEN-GO %s starting...", appVersion)
+	log.Printf("XKEEN-UI %s starting...", appVersion)
 	log.Printf("Config file: %s", configPath)
 	log.Printf("Listen port: %d", cfg.Port)
 	log.Printf("Xray config dir: %s", cfg.XrayConfigDir)
@@ -294,7 +313,7 @@ func runServer() {
 // install performs the installation on Keenetic router
 func install() error {
 	fmt.Println("===================================")
-	fmt.Println("  XKEEN-GO Installer for Keenetic")
+	fmt.Println("  XKEEN-UI Installer for Keenetic")
 	fmt.Println("===================================")
 	fmt.Println()
 
@@ -421,7 +440,7 @@ func install() error {
 
 	fmt.Println()
 	fmt.Println("===================================")
-	fmt.Println("XKEEN-GO installed successfully!")
+	fmt.Println("XKEEN-UI installed successfully!")
 	fmt.Println("===================================")
 	fmt.Println()
 	fmt.Println("Files installed:")
@@ -448,73 +467,26 @@ func install() error {
 	return nil
 }
 
-// uninstall removes xkeen-ui from the system
+// uninstall removes xkeen-ui from the system by launching an external script
 func uninstall() error {
-	fmt.Println("XKEEN-GO Uninstallation Script")
-	fmt.Println("==============================")
-	fmt.Println()
-
 	// Check if running as root
 	if os.Getuid() != 0 {
 		return fmt.Errorf("this command must be run as root (use sudo or run as root)")
 	}
 
-	// Stop service via init script
-	fmt.Println("Stopping xkeen-ui service...")
-	if _, err := os.Stat(installInitScript); err == nil {
-		_ = exec.Command(installInitScript, "stop").Run()
-		_ = exec.Command(installInitScript, "disable").Run()
+	// Write uninstall script to temp location
+	tmpScript := "/tmp/xkeen-ui-uninstall.sh"
+	if err := os.WriteFile(tmpScript, []byte(uninstallScript), 0755); err != nil {
+		return fmt.Errorf("failed to create uninstall script: %w", err)
 	}
 
-	// Kill any remaining processes
-	stopProcess()
-
-	// Remove PID file
-	os.Remove(installPidFile)
-
-	// Remove init script
-	if _, err := os.Stat(installInitScript); err == nil {
-		fmt.Println("Removing init script...")
-		os.Remove(installInitScript)
+	// Launch script in background via shell and exit immediately
+	cmd := exec.Command("sh", "-c", "nohup sh "+tmpScript+" >/dev/null 2>&1 &")
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("failed to start uninstall script: %w", err)
 	}
 
-	// Remove symlink
-	if _, err := os.Lstat(installSymlink); err == nil {
-		fmt.Println("Removing symlink...")
-		os.Remove(installSymlink)
-	}
-
-	// Remove update script
-	if _, err := os.Stat(installUpdateScript); err == nil {
-		fmt.Println("Removing update script...")
-		os.Remove(installUpdateScript)
-	}
-
-	// Remove binary
-	binaryPath := filepath.Join(installBinDir, binaryName)
-	if _, err := os.Stat(binaryPath); err == nil {
-		fmt.Println("Removing binary...")
-		os.Remove(binaryPath)
-	}
-
-	// Ask about config directory
-	if _, err := os.Stat(installConfigDir); err == nil {
-		fmt.Println()
-		fmt.Printf("Remove config directory %s? [y/N]: ", installConfigDir)
-		var answer string
-		fmt.Scanln(&answer)
-		if strings.ToLower(answer) == "y" || strings.ToLower(answer) == "yes" {
-			fmt.Println("Removing config directory...")
-			os.RemoveAll(installConfigDir)
-		} else {
-			fmt.Println("Keeping config directory")
-		}
-	}
-
-	fmt.Println()
-	fmt.Println("Uninstallation complete!")
-	fmt.Println("XKEEN-GO has been removed from your system.")
-
+	fmt.Println("Uninstall script started. XKEEN-UI will be removed shortly.")
 	return nil
 }
 

@@ -1,4 +1,4 @@
-// Package config provides configuration management for XKEEN-GO.
+// Package config provides configuration management for XKEEN-UI.
 package config
 
 import (

@@ -1,4 +1,4 @@
-// Package server provides HTTP server and middleware for XKEEN-GO.
+// Package server provides HTTP server and middleware for XKEEN-UI.
 package server
 
 import (

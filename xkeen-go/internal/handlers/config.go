@@ -1,4 +1,4 @@
-// Package handlers provides HTTP handlers for XKEEN-GO API endpoints.
+// Package handlers provides HTTP handlers for XKEEN-UI API endpoints.
 package handlers
 
 import (

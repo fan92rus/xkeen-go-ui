@@ -1,10 +1,10 @@
-# XKEEN-GO
+# XKEEN-UI
 
 Lightweight Web UI for XKeen configuration on Keenetic routers.
 
 ## Overview
 
-XKEEN-GO is a single-binary web application designed to provide a modern, secure web interface for managing XKeen configurations on Keenetic routers. Built with Go for minimal resource usage, it offers real-time log viewing, configuration editing with JSONC support, and XKeen service control.
+XKEEN-UI is a single-binary web application designed to provide a modern, secure web interface for managing XKeen configurations on Keenetic routers. Built with Go for minimal resource usage, it offers real-time log viewing, configuration editing with JSONC support, and XKeen service control.
 
 ## Features
 

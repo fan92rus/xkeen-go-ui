@@ -2,7 +2,7 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Migrate XKEEN-GO frontend from imperative JavaScript to Alpine.js with reactive state management.
+**Goal:** Migrate XKEEN-UI frontend from imperative JavaScript to Alpine.js with reactive state management.
 
 **Architecture:** Alpine store as single source of truth, components encapsulate CodeMirror/WebSocket/polling, HTML uses Alpine directives for declarative UI.
 
@@ -602,7 +602,7 @@ Co-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>"
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>XKEEN-GO Config Editor</title>
+    <title>XKEEN-UI Config Editor</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>

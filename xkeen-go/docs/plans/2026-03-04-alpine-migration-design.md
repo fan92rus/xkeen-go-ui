@@ -2,7 +2,7 @@
 
 ## Overview
 
-Migration of XKEEN-GO frontend from imperative JavaScript to Alpine.js for improved code maintainability and future UI extensibility.
+Migration of XKEEN-UI frontend from imperative JavaScript to Alpine.js for improved code maintainability and future UI extensibility.
 
 ## Goals
 

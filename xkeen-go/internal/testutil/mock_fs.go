@@ -1,4 +1,4 @@
-// Package testutil provides mock infrastructure for testing XKEEN-GO
+// Package testutil provides mock infrastructure for testing XKEEN-UI
 // without physical device dependencies.
 package testutil
 

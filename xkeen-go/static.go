@@ -1,4 +1,4 @@
-// Package main provides embedded static files for XKEEN-GO.
+// Package main provides embedded static files for XKEEN-UI.
 package main
 
 import (
@@ -11,6 +11,9 @@ var webFS embed.FS
 
 //go:embed scripts/update.sh
 var updateScript string
+
+//go:embed scripts/uninstall.sh
+var uninstallScript string
 
 // GetWebFS returns the embedded web filesystem.
 func GetWebFS() fs.FS {

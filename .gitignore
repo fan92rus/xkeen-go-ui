@@ -1,6 +1,9 @@
 # External dependencies (downloaded)
 xkeen-go/vendor/
 
+# Documentation (root only)
+/docs/
+
 # Build output
 xkeen-go/build/
 xkeen-go/bin/

@@ -1,5 +1,5 @@
 #!/bin/sh
-# XKEEN-GO Atomic Update Script
+# XKEEN-UI Atomic Update Script
 # This script is called by the running process before it exits.
 # It waits for the old process to terminate, then atomically replaces the binary.
 # Compatible with busybox (no fractional sleep).

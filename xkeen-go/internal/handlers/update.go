@@ -1,4 +1,4 @@
-// Package handlers provides HTTP handlers for XKEEN-GO API endpoints.
+// Package handlers provides HTTP handlers for XKEEN-UI API endpoints.
 package handlers
 
 import (
@@ -118,7 +118,7 @@ func (h *UpdateHandler) getLatestStableRelease(ctx context.Context) (*GitHubRele
 	}
 
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
-	req.Header.Set("User-Agent", "XKEEN-GO/"+version.GetVersion())
+	req.Header.Set("User-Agent", "XKEEN-UI/"+version.GetVersion())
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -148,7 +148,7 @@ func (h *UpdateHandler) getLatestPrerelease(ctx context.Context) (*GitHubRelease
 	}
 
 	req.Header.Set("Accept", "application/vnd.github.v3+json")
-	req.Header.Set("User-Agent", "XKEEN-GO/"+version.GetVersion())
+	req.Header.Set("User-Agent", "XKEEN-UI/"+version.GetVersion())
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -388,7 +388,7 @@ func (h *UpdateHandler) downloadFile(ctx context.Context, path, url string) erro
 		return err
 	}
 
-	req.Header.Set("User-Agent", "XKEEN-GO/"+version.GetVersion())
+	req.Header.Set("User-Agent", "XKEEN-UI/"+version.GetVersion())
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
